@@ -1,0 +1,57 @@
+main:
+  enabled: false
+  name: bot-tester-91bf9d462793
+  rpcendpoint: https://api.mainnet-beta.solana.com
+  wssendpoint: wss://api.mainnet-beta.solana.com
+  privkey: '[WALLET-PRIVATE-KEY]'
+  separate: false
+  sandbox: true
+filters:
+  listener: blocks
+  matchstring: null
+  useraddress: null
+  noshorting: false
+  filteroff: false
+geyser:
+  endpoint: '[GEYSER-ENDPOINT]'
+  apitoken: '[GEYSER-API-TOKEN]'
+  authtype: x-token
+timing:
+  tokenmaxage: 0.001
+  tokentimeout: 30
+trade:
+  buyamount: 0.0001
+  buyslippage: 0.3
+  sellslippage: 0.3
+  fastmode: false
+  fasttokens: 20
+  stoplosspercent: 20
+  stoplossmarketcap: null
+  takeprofitpercent: 50
+  takeprofitmarketcap: null
+  trailingstop: true
+  trailingdrop: 30
+priority:
+  enabledynamic: false
+  enablefixed: true
+  baselamports: 1000000
+  extrapercent: 0.0
+  hardcap: 1000000
+retries:
+  maxattempts: 1
+  waitaftercreation: 15
+  waitafterbuy: 15
+  waitnewtoken: 15
+cleanup:
+  mode: post_session
+  forceburn: false
+  priorityfee: false
+rules:
+  minmarketcap: 6000
+  maxmarketcap: 10000
+  maxholdowner: 20
+  holdertop: 20
+  minholders: 10
+  maxholders: 20
+  checkholders: true
+  liquiditypool: 4000

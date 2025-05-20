@@ -1,0 +1,607 @@
+# Import libraries
+import asyncio
+import grpc
+import json
+import logging
+import websockets
+
+# Import packages
+from collections.abc import Awaitable
+from collections.abc import Callable
+from solders.pubkey import Pubkey
+
+# Import local packages
+from geyser import geyserpb2
+from geyser import geysergrpc
+from monitoring.base import BaseTokenListener
+from monitoring.processor import GeyserProcessor
+from monitoring.processor import LogsProcessor
+from monitoring.processor import PumpProcessor
+from handler.base import TokenInfo
+
+# Define 'logger'
+logger = logging.getLogger(__name__)
+
+
+# Class 'BlockListener'
+class BlockListener(BaseTokenListener):
+    """
+    This class listens to the Solana blockchain through a WebSocket connection
+    and processes pump program-specific events in real time. It extends the
+    BaseTokenListener to monitor token activity and trigger a specified callback
+    whenever relevant token events occur. The class is particularly designed to
+    work with programs like Pump.fun and uses a custom event processor for handling
+    incoming events. It maintains a persistent WebSocket connection to stream
+    data and processes it using user-defined callbacks.
+
+    Parameters:
+    - wss_endpoint (str): The WebSocket endpoint of the Solana cluster to connect to.
+    - pump_program (Pubkey): The public key of the Pump program to monitor for relevant events.
+
+    Returns:
+    - None
+    """
+
+    # Class initialization
+    def __init__(self, wss_endpoint: str, pump_program: Pubkey):
+        """
+        This initializer sets up the BlockListener with the WebSocket endpoint and
+        the Pump program's public key. It also initializes the internal event processor
+        that handles matching and decoding Pump-related instructions from the stream.
+        The ping interval is configured to maintain a healthy WebSocket connection.
+        This setup allows asynchronous processing of real-time blockchain data.
+
+        Parameters:
+        - wss_endpoint (str): The URL of the Solana WebSocket endpoint for subscription.
+        - pump_program (Pubkey): The Pump program ID used to filter and process events.
+
+        Returns:
+        - None
+        """
+        self.wss_endpoint = wss_endpoint
+        self.pump_program = pump_program
+        self.event_processor = PumpProcessor(pump_program)
+        self.ping_interval = 20
+
+    # Function 'listen_for_tokens'
+    async def listen_for_tokens(self, token_callback: Callable[[TokenInfo], Awaitable[None]], match_string: str | None = None, creator_address: str | None = None) -> None:
+        """
+         Listens to the Solana blockchain in real-time using a persistent WebSocket connection.
+         Filters incoming account updates and log messages associated with the specified Pump
+         program. When a matching token is detected, it processes the event and triggers the
+         user-defined callback. This function allows optional filtering using a substring
+         match or creator address to restrict the results to specific token launches or origins.
+
+         Parameters:
+         - token_callback (Callable[[TokenInfo], Awaitable[None]]): An asynchronous callback
+           function to be called whenever a new matching token event is detected.
+         - match_string (str | None): An optional string to match against token metadata or addresses.
+         - creator_address: The Solana public key to filter tokens by creator (type not explicitly annotated).
+
+         Returns:
+         - None
+         """
+        while True:
+            try:
+                async with websockets.connect(self.wss_endpoint) as websocket:
+                    await self._subscribe_to_program(websocket)
+                    ping_task = asyncio.create_task(self._ping_loop(websocket))
+
+                    try:
+                        while True:
+                            token_info = await self._wait_for_token_creation(websocket)
+                            if not token_info:
+                                continue
+
+                            logger.info(f"New token detected: {token_info.name} ({token_info.symbol})")
+                            if match_string and not (match_string.lower() in token_info.name.lower() or match_string.lower() in token_info.symbol.lower()):
+                                logger.info(f"Token does not match filter '{match_string}'. Skipping...")
+                                continue
+
+                            if (creator_address and str(token_info.user) != creator_address):
+                                logger.info(f"Token not created by {creator_address}. Skipping...")
+                                continue
+
+                            await token_callback(token_info)
+
+                    except websockets.exceptions.ConnectionClosed:
+                        logger.warning("WebSocket connection closed. Reconnecting...")
+                        ping_task.cancel()
+
+            except Exception as e:
+                logger.error(f"WebSocket connection error: {e!s}")
+                logger.info("Reconnecting in 5 seconds...")
+                await asyncio.sleep(5)
+
+    # Function '_subscribe_to_program'
+    async def _subscribe_to_program(self, websocket) -> None:
+        """
+        This function sends a JSON-RPC subscription message over the WebSocket connection
+        to subscribe to Solana blocks that mention the specified Pump program. It is part
+        of the block-level monitoring logic that allows tracking all transactions involving
+        the targeted program. The function constructs the subscription payload with
+        parameters such as commitment level, encoding type, and transaction details, and
+        then sends it to the blockchain node via the WebSocket stream.
+
+        Parameters:
+        - websocket: An open WebSocket connection (typically from `websockets.connect`) used to send the subscription message.
+
+        Returns:
+        - None
+        """
+        subscription_message = json.dumps(
+            {
+                "jsonrpc": "2.0",
+                "id": 1,
+                "method": "blockSubscribe",
+                "params": [
+                    {"mentionsAccountOrProgram": str(self.pump_program)},
+                    {
+                        "commitment": "confirmed",
+                        "encoding": "base64",
+                        "showRewards": False,
+                        "transactionDetails": "full",
+                        "maxSupportedTransactionVersion": 0,
+                    },
+                ],
+            }
+        )
+
+        await websocket.send(subscription_message)
+        logger.info(f"Subscribed to blocks mentioning program: {self.pump_program}")
+
+    # Function '_ping_loop'
+    async def _ping_loop(self, websocket) -> None:
+        """
+        This function maintains the WebSocket connection by periodically sending ping
+        frames to the Solana node. It uses the ping/pong mechanism to detect broken
+        connections and ensure the listener remains active. If the pong response is not
+        received within a defined timeout, the function closes the connection to trigger
+        a reconnection or termination. This loop runs continuously with an interval
+        defined by `self.ping_interval` until cancelled or an error occurs.
+
+        Parameters:
+        - websocket: The active WebSocket connection on which pings are sent and pong responses are awaited.
+
+        Returns:
+        - None
+        """
+        try:
+            while True:
+                await asyncio.sleep(self.ping_interval)
+                try:
+                    pong_waiter = await websocket.ping()
+                    await asyncio.wait_for(pong_waiter, timeout=10)
+                except TimeoutError:
+                    logger.warning("Ping timeout - server not responding")
+                    await websocket.close()
+                    return
+        except asyncio.CancelledError:
+            pass
+        except Exception as e:
+            logger.error(f"Ping error: {e!s}")
+
+    # Function '_wait_for_token_creation'
+    async def _wait_for_token_creation(self, websocket) -> TokenInfo | None:
+        """
+        This function waits for a block notification message over the WebSocket and scans
+        it for transactions that potentially involve the Pump program. It processes each
+        transaction using the internal event processor and extracts token creation events.
+        If a valid token event is detected, it returns a populated `TokenInfo` object.
+        It includes robust error handling to deal with timeouts, malformed messages,
+        or closed connections, returning `None` if no token is detected.
+
+        Parameters:
+        - websocket: The WebSocket connection used to receive real-time block data from the Solana cluster.
+
+        Returns:
+        - TokenInfo | None: A `TokenInfo` object representing the detected token creation event,
+          or `None` if no relevant event is found or an error occurs.
+        """
+        try:
+            response = await asyncio.wait_for(websocket.recv(), timeout=30)
+            data = json.loads(response)
+
+            if "method" not in data or data["method"] != "blockNotification":
+                return None
+
+            if "params" not in data or "result" not in data["params"]:
+                return None
+
+            block_data = data["params"]["result"]
+            if "value" not in block_data or "block" not in block_data["value"]:
+                return None
+
+            block = block_data["value"]["block"]
+            if "transactions" not in block:
+                return None
+
+            for tx in block["transactions"]:
+                if not isinstance(tx, dict) or "transaction" not in tx:
+                    continue
+
+                token_info = self.event_processor.process_transaction(
+                    tx["transaction"][0]
+                )
+                if token_info:
+                    return token_info
+
+        except TimeoutError:
+            logger.debug("No data received for 30 seconds")
+        except websockets.exceptions.ConnectionClosed:
+            logger.warning("WebSocket connection closed")
+            raise
+        except Exception as e:
+            logger.error(f"Error processing WebSocket message: {e!s}")
+
+        return None
+
+
+# Class 'GeyserListener'
+class GeyserListener(BaseTokenListener):
+    """
+    This class implements a listener that connects to a Solana Geyser plugin endpoint using gRPC,
+    authenticates with either a token or basic auth, and streams live transaction data that involves
+    a specified Pump program. It filters and processes transactions to detect token creation events
+    and invokes a user-defined callback when such events occur. Designed for integration with
+    Pump.fun or similar Solana programs, this class continuously reconnects in case of errors.
+
+    Parameters:
+    - geyser_endpoint (str): The gRPC endpoint URL of the Geyser plugin server.
+    - geyser_api_token (str): The API token or base64 credentials used for authentication.
+    - geyser_auth_type (str): The authentication method: "x-token" or "basic".
+    - pump_program (Pubkey): The Solana program public key (e.g., Pump.fun) to monitor.
+
+    Returns:
+    - None
+    """
+
+    # Class initialization
+    def __init__(self, geyser_endpoint: str, geyser_api_token: str, geyser_auth_type: str, pump_program: Pubkey):
+        """
+        Initializes the GeyserListener by configuring the endpoint, API token, and authentication
+        method. Validates the auth type and sets up the Pump program reference. Also initializes
+        the internal event processor which handles decoding and extraction of token info from
+        transaction data. If the auth type is invalid, an exception is raised during setup.
+
+        Parameters:
+        - geyser_endpoint (str): The gRPC address of the Geyser plugin.
+        - geyser_api_token (str): Token or base64 credentials for authentication.
+        - geyser_auth_type (str): The auth scheme used, either "x-token" or "basic".
+        - pump_program (Pubkey): Public key of the Pump program to filter transactions.
+
+        Returns:
+        - None
+        """
+        self.geyser_endpoint = geyser_endpoint
+        self.geyser_api_token = geyser_api_token
+        valid_auth_types = {"x-token", "basic"}
+        self.auth_type: str = (geyser_auth_type or "x-token").lower()
+        if self.auth_type not in valid_auth_types:
+            raise ValueError(f"Unsupported auth_type={self.auth_type!r}. "f"Expected one of {valid_auth_types}")
+        self.pump_program = pump_program
+        self.event_processor = GeyserEventProcessor(pump_program)
+
+    # Function '_create_geyser_connection'
+    async def _create_geyser_connection(self):
+        """
+        Establishes a secure gRPC channel to the specified Geyser endpoint using the provided
+        authentication credentials. Depending on the selected auth type ("x-token" or "basic"),
+        appropriate headers are set using gRPC metadata. The resulting secure channel is used
+        to instantiate a GeyserStub client that will be used for subscribing to live updates.
+
+        Parameters:
+        - None
+
+        Returns:
+        - tuple: A tuple containing (GeyserStub, gRPC secure channel instance).
+        """
+        if self.auth_type == "x-token":
+            auth = grpc.metadata_call_credentials(lambda _, callback: callback((("x-token", self.geyser_api_token),), None))
+        else:
+            auth = grpc.metadata_call_credentials(lambda _, callback: callback((("authorization", f"Basic {self.geyser_api_token}"),), None))
+        creds = grpc.composite_channel_credentials(grpc.ssl_channel_credentials(), auth)
+        channel = grpc.aio.secure_channel(self.geyser_endpoint, creds)
+        return geyser_pb2_grpc.GeyserStub(channel), channel
+
+    # Function '_create_subscription_request'
+    def _create_subscription_request(self):
+        """
+        Constructs and returns a gRPC `SubscribeRequest` configured to filter only for transactions
+        that involve the specified Pump program. The request includes a transaction filter to
+        ignore failed transactions and specifies a commitment level for consistency with Solana node state.
+
+        Parameters:
+        - None
+
+        Returns:
+        - SubscribeRequest: A fully configured gRPC request object for subscription.
+        """
+        request = geyser_pb2.SubscribeRequest()
+        request.transactions["pump_filter"].account_include.append(str(self.pump_program))
+        request.transactions["pump_filter"].failed = False
+        request.commitment = geyser_pb2.CommitmentLevel.PROCESSED
+        return request
+
+    # Function 'listen_for_tokens'
+    async def listen_for_tokens(self, token_callback: Callable[[TokenInfo], Awaitable[None]], match_string: str | None = None, creator_address: str | None = None) -> None:
+        """
+        Continuously listens for token creation events from the Geyser endpoint using a gRPC subscription.
+        For each incoming transaction update, it extracts the instruction data and checks if it matches
+        the Pump program. If a token is found, optional filters on name/symbol or creator address are applied
+        before invoking the user callback. Handles disconnections, gRPC errors, and reconnects gracefully
+        after waiting a few seconds.
+
+        Parameters:
+        - token_callback (Callable[[TokenInfo], Awaitable[None]]): Async function called when a valid token is detected.
+        - match_string (str | None): Optional string filter applied to token name or symbol.
+        - creator_address (str | None): Optional creator address to restrict which tokens to emit.
+
+        Returns:
+        - None
+        """
+        while True:
+            try:
+                stub, channel = await self._create_geyser_connection()
+                request = self._create_subscription_request()
+                logger.info(f"Connected to Geyser endpoint: {self.geyser_endpoint}")
+                logger.info(f"Monitoring for transactions involving program: {self.pump_program}")
+
+                try:
+                    async for update in stub.Subscribe(iter([request])):
+                        token_info = await self._process_update(update)
+                        if not token_info:
+                            continue
+
+                        logger.info(f"New token detected: {token_info.name} ({token_info.symbol})")
+                        if match_string and not (match_string.lower() in token_info.name.lower() or match_string.lower() in token_info.symbol.lower()):
+                            logger.info(f"Token does not match filter '{match_string}'. Skipping...")
+                            continue
+
+                        if (creator_address and str(token_info.user) != creator_address):
+                            logger.info(f"Token not created by {creator_address}. Skipping...")
+                            continue
+                        await token_callback(token_info)
+
+                except grpc.aio.AioRpcError as e:
+                    logger.error(f"gRPC error: {e.details()}")
+                    await asyncio.sleep(5)
+
+                finally:
+                    await channel.close()
+
+            except Exception as e:
+                logger.error(f"Geyser connection error: {e}")
+                logger.info("Reconnecting in 10 seconds...")
+                await asyncio.sleep(10)
+
+    # Function '_process_update'
+    async def _process_update(self, update) -> TokenInfo | None:
+        """
+        Processes a single gRPC transaction update received from the Geyser stream.
+        It checks that the update contains a valid transaction field, then parses the
+        Solana transaction message to locate instructions targeting the Pump program.
+        If such an instruction is found, its data and accounts are passed to the
+        event processor, which extracts and returns a TokenInfo object. Returns None
+        if the update is irrelevant or malformed.
+
+        Parameters:
+        - update: The gRPC update object containing a transaction field to inspect.
+
+        Returns:
+        - TokenInfo | None: Parsed token info if the instruction is relevant and valid, otherwise None.
+        """
+        try:
+            if not update.HasField("transaction"):
+                return None
+
+            tx = update.transaction.transaction.transaction
+            msg = getattr(tx, "message", None)
+            if msg is None:
+                return None
+
+            for ix in msg.instructions:
+                program_idx = ix.program_id_index
+                if program_idx >= len(msg.account_keys):
+                    continue
+
+                program_id = msg.account_keys[program_idx]
+                if bytes(program_id) != bytes(self.pump_program):
+                    continue
+
+                token_info = self.event_processor.process_transaction_data(ix.data, ix.accounts, msg.account_keys)
+                if token_info:
+                    return token_info
+
+            return None
+
+        except Exception as e:
+            logger.error(f"Error processing Geyser update: {e}")
+            return None
+
+
+# Class 'LogsListener'
+class LogsListener(BaseTokenListener):
+    """
+    This class establishes a WebSocket connection to a Solana node and listens for log messages
+    that reference a specific Pump program. It filters, decodes, and analyzes transaction logs
+    in real time to detect token creation events. When a new token is detected that matches the
+    specified criteria, it triggers a user-defined callback. This listener provides an efficient
+    method to monitor on-chain activity without using full transaction streams.
+
+    Parameters:
+    - wss_endpoint (str): The WebSocket endpoint of a Solana RPC node.
+    - pump_program (Pubkey): The public key of the Pump program to monitor in transaction logs.
+
+    Returns:
+    - None
+    """
+
+    # Class initialization
+    def __init__(self, wss_endpoint: str, pump_program: Pubkey):
+        """
+        Initializes the LogsListener instance by setting up the WebSocket endpoint and Pump
+        program public key. It also creates an internal log event processor to handle token
+        detection based on real-time log messages. The ping interval is set to maintain
+        WebSocket health via regular pings.
+
+        Parameters:
+        - wss_endpoint (str): URL of the WebSocket endpoint to connect to.
+        - pump_program (Pubkey): Program ID to track in log messages.
+
+        Returns:
+        - None
+        """
+        self.wss_endpoint = wss_endpoint
+        self.pump_program = pump_program
+        self.event_processor = LogsEventProcessor(pump_program)
+        self.ping_interval = 20
+
+    # Function 'listen_for_tokens'
+    async def listen_for_tokens(self, token_callback: Callable[[TokenInfo], Awaitable[None]], match_string: str | None = None, creator_address: str | None = None) -> None:
+        """
+        Listens indefinitely to Solana log messages through a WebSocket connection. Upon receiving
+        new logs mentioning the target program, it processes them to detect token creation events.
+        It applies optional filters based on name, symbol, or creator address before invoking the
+        provided asynchronous callback. The method is resilient to disconnections and attempts
+        automatic reconnection with delay.
+
+        Parameters:
+        - token_callback (Callable[[TokenInfo], Awaitable[None]]): The async function to call when a token is detected.
+        - match_string (str | None): Optional filter to match token name or symbol.
+        - creator_address (str | None): Optional filter to only allow tokens created by a specific address.
+
+        Returns:
+        - None
+        """
+        while True:
+            try:
+                async with websockets.connect(self.wss_endpoint) as websocket:
+                    await self._subscribe_to_logs(websocket)
+                    ping_task = asyncio.create_task(self._ping_loop(websocket))
+
+                    try:
+                        while True:
+                            token_info = await self._wait_for_token_creation(websocket)
+                            if not token_info:
+                                continue
+
+                            logger.info(f"New token detected: {token_info.name} ({token_info.symbol})")
+                            if match_string and not (match_string.lower() in token_info.name.lower() or match_string.lower() in token_info.symbol.lower()):
+                                logger.info(f"Token does not match filter '{match_string}'. Skipping...")
+                                continue
+
+                            if (creator_address and str(token_info.user) != creator_address):
+                                logger.info(f"Token not created by {creator_address}. Skipping...")
+                                continue
+                            await token_callback(token_info)
+
+                    except websockets.exceptions.ConnectionClosed:
+                        logger.warning("WebSocket connection closed. Reconnecting...")
+                        ping_task.cancel()
+
+            except Exception as e:
+                logger.error(f"WebSocket connection error: {str(e)}")
+                logger.info("Reconnecting in 5 seconds...")
+                await asyncio.sleep(5)
+
+    # Function '_subscribe_to_logs'
+    async def _subscribe_to_logs(self, websocket) -> None:
+        """
+        Sends a `logsSubscribe` request over the WebSocket connection to subscribe to all Solana
+        logs that mention the configured Pump program. After sending the request, it listens for
+        and validates the subscription confirmation message. This function ensures that log
+        notifications will be streamed for further analysis by the listener.
+
+        Parameters:
+        - websocket: The open WebSocket connection used to send and receive subscription messages.
+
+        Returns:
+        - None
+        """
+        subscription_message = json.dumps(
+            {
+                "jsonrpc": "2.0",
+                "id": 1,
+                "method": "logsSubscribe",
+                "params": [
+                    {"mentions": [str(self.pump_program)]},
+                    {"commitment": "processed"},
+                ],
+            }
+        )
+
+        await websocket.send(subscription_message)
+        logger.info(f"Subscribed to logs mentioning program: {self.pump_program}")
+        response = await websocket.recv()
+        response_data = json.loads(response)
+
+        if "result" in response_data:
+            logger.info(f"Subscription confirmed with ID: {response_data['result']}")
+        else:
+            logger.warning(f"Unexpected subscription response: {response}")
+
+    # Function '_ping_loop'
+    async def _ping_loop(self, websocket) -> None:
+        """
+        Keeps the WebSocket connection alive by sending ping messages at regular intervals. If
+        the pong response is not received within a defined timeout, the connection is considered
+        broken and closed. This watchdog mechanism ensures robustness against dropped or silent
+        connections and allows reconnection strategies to be triggered when needed.
+
+        Parameters:
+        - websocket: The active WebSocket connection used for sending pings.
+
+        Returns:
+        - None
+        """
+        try:
+            while True:
+                await asyncio.sleep(self.ping_interval)
+                try:
+                    pong_waiter = await websocket.ping()
+                    await asyncio.wait_for(pong_waiter, timeout=10)
+                except asyncio.TimeoutError:
+                    logger.warning("Ping timeout - server not responding")
+                    await websocket.close()
+                    return
+        except asyncio.CancelledError:
+            pass
+        except Exception as e:
+            logger.error(f"Ping error: {str(e)}")
+
+    # Function '_wait_for_token_creation'
+    async def _wait_for_token_creation(self, websocket) -> TokenInfo | None:
+        """
+        Waits for and processes the next log message received from the WebSocket connection.
+        It verifies that the incoming message is a `logsNotification`, extracts the log entries
+        and transaction signature, and passes them to the event processor for analysis. If a valid
+        token creation is detected, the function returns a TokenInfo object; otherwise, it returns None.
+
+        Parameters:
+        - websocket: The WebSocket connection used to receive log notifications.
+
+        Returns:
+        - TokenInfo | None: A populated TokenInfo object if a token is detected, or None otherwise.
+        """
+        try:
+            response = await asyncio.wait_for(websocket.recv(), timeout=30)
+            data = json.loads(response)
+
+            if "method" not in data or data["method"] != "logsNotification":
+                return None
+
+            log_data = data["params"]["result"]["value"]
+            logs = log_data.get("logs", [])
+            signature = log_data.get("signature", "unknown")
+            return self.event_processor.process_program_logs(logs, signature)
+
+        except asyncio.TimeoutError:
+            logger.debug("No data received for 30 seconds")
+        except websockets.exceptions.ConnectionClosed:
+            logger.warning("WebSocket connection closed")
+            raise
+        except Exception as e:
+            logger.error(f"Error processing WebSocket message: {str(e)}")
+
+        return None

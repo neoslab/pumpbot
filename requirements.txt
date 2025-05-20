@@ -1,0 +1,10 @@
+aiohttp
+base58
+flask
+flask-wtf
+grpcio
+grpcio-tools
+protobuf
+pyyaml
+solana
+solders
