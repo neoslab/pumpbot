@@ -18,43 +18,46 @@
                             {% with messages = get_flashed_messages(with_categories=true) %}
                                 {% if messages %}
                                     {% for category, message in messages %}
-                                        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
-                                            {{ message }}
+                                        <div class="alert alert-{{category}} alert-dismissible fade show" role="alert">
+                                            {{message}}
                                             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                                         </div>
                                     {% endfor %}
                                 {% endif %}
                             {% endwith %}
                             <div class="mb-3">
-                                <label class="form-label">Username</label>
+                                {{form.username.label(class="form-label")}}
                                 <div class="form-control-feedback form-control-feedback-start">
-                                    <input type="text" class="form-control" placeholder="Enter your username" name="username" autocomplete="off" required>
+                                    {{form.username(class="form-control", placeholder="Enter your username", autocomplete="off")}}
                                     <div class="form-control-feedback-icon">
                                         <i class="ph-user-circle text-muted"></i>
                                     </div>
                                 </div>
+                                {% if form.username.errors %}
+                                    <div class="text-danger small mt-1">{{form.username.errors[0]}}</div>
+                                {% endif %}
                             </div>
                             <div class="mb-3">
-                                <label class="form-label">Password</label>
+                                {{form.password.label(class="form-label")}}
                                 <div class="form-control-feedback form-control-feedback-start">
-                                    <input type="password" class="form-control" placeholder="•••••••••••" name="password" autocomplete="off" required>
+                                    {{form.password(class="form-control", placeholder="•••••••••••", autocomplete="off")}}
                                     <div class="form-control-feedback-icon">
                                         <i class="ph-lock text-muted"></i>
                                     </div>
                                 </div>
+                                {% if form.password.errors %}
+                                    <div class="text-danger small mt-1">{{form.password.errors[0]}}</div>
+                                {% endif %}
                             </div>
                             <div class="mb-3">
-                                <button type="submit" class="btn btn-primary w-100">
-                                    <i class="ph-lock me-2"></i>
-                                    <span>Login Now</span>
-                                </button>
+                                {{form.submit(class="btn btn-primary w-100")}}
                             </div>
                         </div>
                     </div>
                 </form>
             </div>
         </div>
-		{% include 'parts/tailbar.html' %}
+        {% include 'parts/tailbar.html' %}
     </div>
 </div>
 {% endblock %}

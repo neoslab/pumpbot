@@ -20,12 +20,12 @@
                                     {% if not filename %}
                                         <div class="mb-3">
                                             <label class="form-label">Filename</label>
-                                            <input type="text" class="form-control" name="filename" placeholder="Please type a filename" autocomplete="off" required>
+                                            <input type="text" class="form-control" name="filename" placeholder="Type a filename" autocomplete="off" required>
                                         </div>
                                     {% endif %}
                                     {% for key, value in data.items() %}
                                         {% if value is mapping %}
-                                            <fieldset class="mb-3{% if not (key == 'main' and 'enabled' in value) %} bot-fields{% endif %}{% if key=='geyser' %} geyser-fieldset d-none{% endif %}" {% if key=='geyser' %}data-section="geyser" {% endif %}>
+                                            <fieldset class="mb-3{% if not (key == 'main' and 'enabled' in value) %} bot-fields{% endif %}">
                                                 <legend class="fs-base fw-bold border-bottom text-uppercase pb-2 mb-3">{{key}}</legend>
                                                 {% for subkey, subval in value.items() %}
                                                     {% set fieldmeta = meta.get(key, {}).get(subkey, {}) %}
@@ -38,9 +38,9 @@
                                                                 {% endfor %}
                                                             </select>
                                                         {% elif fieldmeta.type == 'password' %}
-                                                            <input type="password" class="form-control" name="{{key}}.{{subkey}}" value="{{subval}}" placeholder="Please insert a value" autocomplete="off" required>
+                                                            <input type="password" class="form-control" name="{{key}}.{{subkey}}" value="{{subval}}" placeholder="Insert a value" autocomplete="off" required>
                                                         {% else %}
-                                                            <input type="text" class="form-control" name="{{key}}.{{subkey}}" value="{{subval}}" placeholder="Please insert a value" autocomplete="off" required>
+                                                            <input type="text" class="form-control" name="{{key}}.{{subkey}}" value="{{subval}}" placeholder="Insert a value" autocomplete="off" required>
                                                         {% endif %}
                                                         {% if fieldmeta.description %}
                                                             <div class="text-muted mt-1 ms-1">
@@ -53,7 +53,7 @@
                                         {% else %}
                                             <div class="mb-3 bot-fields">
                                                 <label class="form-label">{{key}}</label>
-                                                <input type="text" class="form-control" name="{{key}}" value="{{value}}" placeholder="Please insert a value" autocomplete="off" required>
+                                                <input type="text" class="form-control" name="{{key}}" value="{{value}}" placeholder="Insert a value" autocomplete="off" required>
                                             </div>
                                         {% endif %}
                                     {% endfor %}
@@ -63,7 +63,7 @@
                                             <span class="btn-labeled-icon bg-info text-white">
                                                 <i class="ph-spinner spinner"></i>
                                             </span>
-                                            <span>Save Bot</span>
+                                            <span>{{form.submit.label.text}}</span>
                                         </button>
                                     </div>
                                 </form>

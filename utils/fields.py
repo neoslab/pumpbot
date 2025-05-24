@@ -1,0 +1,269 @@
+# Class 'BotFields'
+class BotFields:
+    """ Class description """
+
+    # Class initialization
+    def __init__(self):
+        """ Initializer description """
+        self.fields = self.buildfields()
+
+    # Function 'buildfields'
+    @staticmethod
+    def buildfields():
+        """ Function description """
+        return {
+            'main': {
+                'enabled': {
+                    'label': 'Bot Status',
+                    'type': 'select',
+                    'description': 'Enable or disable this bot instance entirely.',
+                    'options': ['True', 'False']
+                },
+                'name': {
+                    'label': 'Bot Name',
+                    'type': 'text',
+                    'description': 'A unique name to identify and reference this specific bot configuration.'
+                },
+                'multithreads': {
+                    'label': 'Multithreads',
+                    'type': 'select',
+                    'description': 'Enable concurrent execution to allow multiple bot components to run in parallel.',
+                    'options': ['True', 'False']
+                },
+                'sandbox': {
+                    'label': 'Sandbox Mode',
+                    'type': 'select',
+                    'description': 'When enabled, activates paper trading mode (simulated trades with no real SOL).',
+                    'options': ['True', 'False']
+                },
+                'initbalance': {
+                    'label': 'Initial Balance',
+                    'type': 'text',
+                    'description': 'Starting virtual balance in SOL for the bot when running in sandbox mode.'
+                },
+                'maxopentrades': {
+                    'label': 'Max. Open Trades',
+                    'type': 'text',
+                    'description': 'Maximum number of simultaneous trades that can be open at any given time. Set to 0 for unlimited.'
+                }
+            },
+            'filters': {
+                'chainlistener': {
+                    'label': 'Chain Listener',
+                    'type': 'select',
+                    'description': 'Defines the event source to listen for token detection (e.g., new blocks or logs).',
+                    'options': ['blocks', 'logs']
+                },
+                'matchstring': {
+                    'label': 'Match String',
+                    'type': 'text',
+                    'description': 'Only consider tokens whose name or symbol contains this substring.'
+                },
+                'matchaddress': {
+                    'label': 'User Address',
+                    'type': 'text',
+                    'description': 'Only consider tokens deployed by this specific wallet address.'
+                },
+                'noshorting': {
+                    'label': 'No Shorting',
+                    'type': 'select',
+                    'description': 'If enabled, disables shorting and allows only buy trades.',
+                    'options': ['True', 'False']
+                },
+                'filteroff': {
+                    'label': 'Filter Off',
+                    'type': 'select',
+                    'description': 'Disable all token filters and trade any new token detected.',
+                    'options': ['True', 'False']
+                }
+            },
+            'timing': {
+                'tokenminage': {
+                    'label': 'Min. Token Age',
+                    'type': 'text',
+                    'description': 'Minimum token age (in seconds) to qualify for trading.'
+                },
+                'tokenmaxage': {
+                    'label': 'Max. Token Age',
+                    'type': 'text',
+                    'description': 'Maximum token age (in seconds) beyond which tokens will be ignored.'
+                },
+                'tokentimeout': {
+                    'label': 'Token Timeout',
+                    'type': 'text',
+                    'description': 'Timeout (in seconds) to wait for token metadata or price response before skipping.'
+                }
+            },
+            'trade': {
+                'buyamount': {
+                    'label': 'Buy Amount',
+                    'type': 'text',
+                    'description': 'Amount of SOL to allocate for each token purchase.'
+                },
+                'buyslippage': {
+                    'label': 'Buy Slippage',
+                    'type': 'text',
+                    'description': 'Maximum allowable slippage for buy orders (as a decimal percentage, e.g., 0.05 = 5%).'
+                },
+                'sellslippage': {
+                    'label': 'Sell Slippage',
+                    'type': 'text',
+                    'description': 'Maximum allowable slippage for sell orders (as a decimal percentage).'
+                },
+                'fastmode': {
+                    'label': 'Fast Mode',
+                    'type': 'select',
+                    'description': 'Bypass price checks and execute buys immediately after detection.',
+                    'options': ['True', 'False']
+                },
+                'fasttokens': {
+                    'label': 'Fast Tokens',
+                    'type': 'text',
+                    'description': 'Number of tokens to buy when fast mode is enabled.'
+                },
+                'stoploss': {
+                    'label': 'Stoploss Percentage',
+                    'type': 'text',
+                    'description': 'Loss threshold in percentage. The bot will sell if the price drops by this amount.'
+                },
+                'takeprofit': {
+                    'label': 'Take Profit Percentage',
+                    'type': 'text',
+                    'description': 'Profit threshold in percentage. The bot will sell if the price increases by this amount.'
+                },
+                'trailing': {
+                    'label': 'Trailing Profit',
+                    'type': 'text',
+                    'description': 'Activate a trailing stop once the price has increased by this percentage.'
+                },
+                'timeout': {
+                    'label': 'Trade Timeout',
+                    'type': 'text',
+                    'description': 'Maximum duration (in seconds) a trade can stay open without reaching stop loss or take profit.'
+                }
+            },
+            'priority': {
+                'dynamic': {
+                    'label': 'Dynamic Priority',
+                    'type': 'select',
+                    'description': 'Use real-time gas fee estimation for adjusting priority fees.',
+                    'options': ['True', 'False']
+                },
+                'fixed': {
+                    'label': 'Fixed Fee',
+                    'type': 'select',
+                    'description': 'Use a fixed fee value instead of dynamic estimation.',
+                    'options': ['True', 'False']
+                },
+                'lamports': {
+                    'label': 'Base Lamports',
+                    'type': 'text',
+                    'description': 'Base fee in microlamports (1,000,000 = 0.001 SOL).'
+                },
+                'extra': {
+                    'label': 'Extra Percentage',
+                    'type': 'text',
+                    'description': 'Percentage to increase the base fee for better priority.'
+                },
+                'hardcap': {
+                    'label': 'Hard Cap',
+                    'type': 'text',
+                    'description': 'Maximum priority fee in microlamports to prevent overspending.'
+                }
+            },
+            'retries': {
+                'attempts': {
+                    'label': 'Max. Attempts',
+                    'type': 'text',
+                    'description': 'Maximum number of retry attempts for submitting a failed transaction before giving up.'
+                }
+            },
+            'cleanup': {
+                'mode': {
+                    'label': 'Cleanup Mode',
+                    'type': 'select',
+                    'description': 'Defines when cleanup actions (e.g., burning or closing accounts) should occur.',
+                    'options': ['disabled', 'fail', 'sell', 'session']
+                },
+                'burn': {
+                    'label': 'Force Burn',
+                    'type': 'select',
+                    'description': 'If enabled, any remaining tokens will be forcefully burned after trading.',
+                    'options': ['True', 'False']
+                },
+                'fee': {
+                    'label': 'Priority Fee',
+                    'type': 'select',
+                    'description': 'Use priority fees for cleanup-related transactions.',
+                    'options': ['True', 'False']
+                }
+            },
+            'rules': {
+                'minmarketcap': {
+                    'label': 'Min. Market Cap',
+                    'type': 'text',
+                    'description': 'Minimum market capitalization (USD) required for a token to be eligible.'
+                },
+                'maxmarketcap': {
+                    'label': 'Max. Market Cap',
+                    'type': 'text',
+                    'description': 'Maximum market capitalization (USD) allowed for a token to qualify.'
+                },
+                'minmarketvol': {
+                    'label': 'Min. Market Volume',
+                    'type': 'text',
+                    'description': 'Minimum trading volume (USD) required for a token to be considered.'
+                },
+                'maxmarketvol': {
+                    'label': 'Max. Market Volume',
+                    'type': 'text',
+                    'description': 'Maximum trading volume (USD) allowed for a token to qualify.'
+                },
+                'minholdowner': {
+                    'label': 'Min. Owner Hold',
+                    'type': 'text',
+                    'description': 'Minimum percentage of total supply the token owner must hold.'
+                },
+                'maxholdowner': {
+                    'label': 'Max. Owner Hold',
+                    'type': 'text',
+                    'description': 'Maximum percentage of total supply the token owner is allowed to hold.'
+                },
+                'topholders': {
+                    'label': 'Top Holder',
+                    'type': 'text',
+                    'description': 'Maximum allowed percentage held by the top wallet holder.'
+                },
+                'minholders': {
+                    'label': 'Min. Holders',
+                    'type': 'text',
+                    'description': 'Minimum number of unique token holders required for eligibility.'
+                },
+                'maxholders': {
+                    'label': 'Max. Holders',
+                    'type': 'text',
+                    'description': 'Maximum number of holders allowed for a token to qualify.'
+                },
+                'checkholders': {
+                    'label': 'Check. Holders',
+                    'type': 'select',
+                    'description': 'Enable check to verify that all holders have a minimum SOL balance.',
+                    'options': ['True', 'False']
+                },
+                'minliquidity': {
+                    'label': 'Min. Liquidity Pool',
+                    'type': 'text',
+                    'description': 'Minimum liquidity (in USD) the token must have in its trading pool.'
+                },
+                'maxliquidity': {
+                    'label': 'Max. Liquidity Pool',
+                    'type': 'text',
+                    'description': 'Maximum liquidity (in USD) allowed for token eligibility.'
+                }
+            }
+        }
+
+    # Function 'getfields'
+    def getfields(self):
+        """ Function description """
+        return self.fields

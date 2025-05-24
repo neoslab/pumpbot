@@ -1,6 +1,5 @@
 # Import libraries
 import asyncio
-import grpc
 import json
 import logging
 import websockets
@@ -11,10 +10,7 @@ from collections.abc import Callable
 from solders.pubkey import Pubkey
 
 # Import local packages
-from geyser import geyserpb2
-from geyser import geysergrpc
 from monitoring.base import BaseTokenListener
-from monitoring.processor import GeyserProcessor
 from monitoring.processor import LogsProcessor
 from monitoring.processor import PumpProcessor
 from handler.base import TokenInfo
@@ -237,189 +233,6 @@ class BlockListener(BaseTokenListener):
         return None
 
 
-# Class 'GeyserListener'
-class GeyserListener(BaseTokenListener):
-    """
-    This class implements a listener that connects to a Solana Geyser plugin endpoint using gRPC,
-    authenticates with either a token or basic auth, and streams live transaction data that involves
-    a specified Pump program. It filters and processes transactions to detect token creation events
-    and invokes a user-defined callback when such events occur. Designed for integration with
-    Pump.fun or similar Solana programs, this class continuously reconnects in case of errors.
-
-    Parameters:
-    - geyser_endpoint (str): The gRPC endpoint URL of the Geyser plugin server.
-    - geyser_api_token (str): The API token or base64 credentials used for authentication.
-    - geyser_auth_type (str): The authentication method: "x-token" or "basic".
-    - pump_program (Pubkey): The Solana program public key (e.g., Pump.fun) to monitor.
-
-    Returns:
-    - None
-    """
-
-    # Class initialization
-    def __init__(self, geyser_endpoint: str, geyser_api_token: str, geyser_auth_type: str, pump_program: Pubkey):
-        """
-        Initializes the GeyserListener by configuring the endpoint, API token, and authentication
-        method. Validates the auth type and sets up the Pump program reference. Also initializes
-        the internal event processor which handles decoding and extraction of token info from
-        transaction data. If the auth type is invalid, an exception is raised during setup.
-
-        Parameters:
-        - geyser_endpoint (str): The gRPC address of the Geyser plugin.
-        - geyser_api_token (str): Token or base64 credentials for authentication.
-        - geyser_auth_type (str): The auth scheme used, either "x-token" or "basic".
-        - pump_program (Pubkey): Public key of the Pump program to filter transactions.
-
-        Returns:
-        - None
-        """
-        self.geyser_endpoint = geyser_endpoint
-        self.geyser_api_token = geyser_api_token
-        valid_auth_types = {"x-token", "basic"}
-        self.auth_type: str = (geyser_auth_type or "x-token").lower()
-        if self.auth_type not in valid_auth_types:
-            raise ValueError(f"Unsupported auth_type={self.auth_type!r}. "f"Expected one of {valid_auth_types}")
-        self.pump_program = pump_program
-        self.event_processor = GeyserEventProcessor(pump_program)
-
-    # Function '_create_geyser_connection'
-    async def _create_geyser_connection(self):
-        """
-        Establishes a secure gRPC channel to the specified Geyser endpoint using the provided
-        authentication credentials. Depending on the selected auth type ("x-token" or "basic"),
-        appropriate headers are set using gRPC metadata. The resulting secure channel is used
-        to instantiate a GeyserStub client that will be used for subscribing to live updates.
-
-        Parameters:
-        - None
-
-        Returns:
-        - tuple: A tuple containing (GeyserStub, gRPC secure channel instance).
-        """
-        if self.auth_type == "x-token":
-            auth = grpc.metadata_call_credentials(lambda _, callback: callback((("x-token", self.geyser_api_token),), None))
-        else:
-            auth = grpc.metadata_call_credentials(lambda _, callback: callback((("authorization", f"Basic {self.geyser_api_token}"),), None))
-        creds = grpc.composite_channel_credentials(grpc.ssl_channel_credentials(), auth)
-        channel = grpc.aio.secure_channel(self.geyser_endpoint, creds)
-        return geyser_pb2_grpc.GeyserStub(channel), channel
-
-    # Function '_create_subscription_request'
-    def _create_subscription_request(self):
-        """
-        Constructs and returns a gRPC `SubscribeRequest` configured to filter only for transactions
-        that involve the specified Pump program. The request includes a transaction filter to
-        ignore failed transactions and specifies a commitment level for consistency with Solana node state.
-
-        Parameters:
-        - None
-
-        Returns:
-        - SubscribeRequest: A fully configured gRPC request object for subscription.
-        """
-        request = geyser_pb2.SubscribeRequest()
-        request.transactions["pump_filter"].account_include.append(str(self.pump_program))
-        request.transactions["pump_filter"].failed = False
-        request.commitment = geyser_pb2.CommitmentLevel.PROCESSED
-        return request
-
-    # Function 'listen_for_tokens'
-    async def listen_for_tokens(self, token_callback: Callable[[TokenInfo], Awaitable[None]], match_string: str | None = None, creator_address: str | None = None) -> None:
-        """
-        Continuously listens for token creation events from the Geyser endpoint using a gRPC subscription.
-        For each incoming transaction update, it extracts the instruction data and checks if it matches
-        the Pump program. If a token is found, optional filters on name/symbol or creator address are applied
-        before invoking the user callback. Handles disconnections, gRPC errors, and reconnects gracefully
-        after waiting a few seconds.
-
-        Parameters:
-        - token_callback (Callable[[TokenInfo], Awaitable[None]]): Async function called when a valid token is detected.
-        - match_string (str | None): Optional string filter applied to token name or symbol.
-        - creator_address (str | None): Optional creator address to restrict which tokens to emit.
-
-        Returns:
-        - None
-        """
-        while True:
-            try:
-                stub, channel = await self._create_geyser_connection()
-                request = self._create_subscription_request()
-                logger.info(f"Connected to Geyser endpoint: {self.geyser_endpoint}")
-                logger.info(f"Monitoring for transactions involving program: {self.pump_program}")
-
-                try:
-                    async for update in stub.Subscribe(iter([request])):
-                        token_info = await self._process_update(update)
-                        if not token_info:
-                            continue
-
-                        logger.info(f"New token detected: {token_info.name} ({token_info.symbol})")
-                        if match_string and not (match_string.lower() in token_info.name.lower() or match_string.lower() in token_info.symbol.lower()):
-                            logger.info(f"Token does not match filter '{match_string}'. Skipping...")
-                            continue
-
-                        if (creator_address and str(token_info.user) != creator_address):
-                            logger.info(f"Token not created by {creator_address}. Skipping...")
-                            continue
-                        await token_callback(token_info)
-
-                except grpc.aio.AioRpcError as e:
-                    logger.error(f"gRPC error: {e.details()}")
-                    await asyncio.sleep(5)
-
-                finally:
-                    await channel.close()
-
-            except Exception as e:
-                logger.error(f"Geyser connection error: {e}")
-                logger.info("Reconnecting in 10 seconds...")
-                await asyncio.sleep(10)
-
-    # Function '_process_update'
-    async def _process_update(self, update) -> TokenInfo | None:
-        """
-        Processes a single gRPC transaction update received from the Geyser stream.
-        It checks that the update contains a valid transaction field, then parses the
-        Solana transaction message to locate instructions targeting the Pump program.
-        If such an instruction is found, its data and accounts are passed to the
-        event processor, which extracts and returns a TokenInfo object. Returns None
-        if the update is irrelevant or malformed.
-
-        Parameters:
-        - update: The gRPC update object containing a transaction field to inspect.
-
-        Returns:
-        - TokenInfo | None: Parsed token info if the instruction is relevant and valid, otherwise None.
-        """
-        try:
-            if not update.HasField("transaction"):
-                return None
-
-            tx = update.transaction.transaction.transaction
-            msg = getattr(tx, "message", None)
-            if msg is None:
-                return None
-
-            for ix in msg.instructions:
-                program_idx = ix.program_id_index
-                if program_idx >= len(msg.account_keys):
-                    continue
-
-                program_id = msg.account_keys[program_idx]
-                if bytes(program_id) != bytes(self.pump_program):
-                    continue
-
-                token_info = self.event_processor.process_transaction_data(ix.data, ix.accounts, msg.account_keys)
-                if token_info:
-                    return token_info
-
-            return None
-
-        except Exception as e:
-            logger.error(f"Error processing Geyser update: {e}")
-            return None
-
-
 # Class 'LogsListener'
 class LogsListener(BaseTokenListener):
     """
@@ -454,7 +267,7 @@ class LogsListener(BaseTokenListener):
         """
         self.wss_endpoint = wss_endpoint
         self.pump_program = pump_program
-        self.event_processor = LogsEventProcessor(pump_program)
+        self.event_processor = LogsProcessor(pump_program)
         self.ping_interval = 20
 
     # Function 'listen_for_tokens'

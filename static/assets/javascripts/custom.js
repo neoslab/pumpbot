@@ -6,7 +6,7 @@ function showToast(message, type = 'success')
     setTimeout(() => 
     {
         toast.className = toast.className.replace("show", "");
-    }, 500);
+    }, 1500);
 }
 
 function toggleBotFields() 
@@ -57,18 +57,18 @@ function toggleBotSwitch(filename, enabled)
 
 function toggleConditionalFields() 
 {
-    const listener = $('[name="filters.listener"]').val();
-    const fastmode = $('[name="trade.fastmode"]').val();
-    const trailingstop = $('[name="trade.trailingstop"]').val();
+    const enabled = $('[name="main.enabled"]').val();
+    const sandbox = $('[name="main.sandbox"]').val();
     const filteroff = $('[name="filters.filteroff"]').val();
+    const fastmode = $('[name="trade.fastmode"]').val();
 
-    if(listener === "geyser") 
+    if(enabled === "True" && sandbox === "True") 
     {
-        $('.geyser-fieldset').removeClass("d-none");
+        $('[name="main.initbalance"]').closest('.mb-3').show();
     } 
     else 
     {
-        $('.geyser-fieldset').addClass("d-none");
+        $('[name="main.initbalance"]').closest('.mb-3').hide();
     }
 
     if(fastmode === "True") 
@@ -80,28 +80,24 @@ function toggleConditionalFields()
         $('[name="trade.fasttokens"]').closest('.mb-3').hide();
     }
 
-    if(trailingstop === "True") 
-    {
-        $('[name="trade.trailingdrop"]').closest('.mb-3').show();
-    } 
-    else 
-    {
-        $('[name="trade.trailingdrop"]').closest('.mb-3').hide();
-    }
-
-    const readonlyFields = [
+    const readonlyFields = 
+    [
         'filters.matchstring',
-        'filters.useraddress',
+        'filters.matchaddress',
         'filters.noshorting',
         'timing.tokenmaxage',
         'rules.minmarketcap',
         'rules.maxmarketcap',
+        'rules.minmarketvol',
+        'rules.maxmarketvol',
+        'rules.minholdowner',
         'rules.maxholdowner',
-        'rules.holdertop',
+        'rules.topholders',
         'rules.minholders',
         'rules.maxholders',
         'rules.checkholders',
-        'rules.liquiditypool'
+        'rules.minliquidity',
+        'rules.maxliquidity'
     ];
 
     readonlyFields.forEach(field => 
@@ -128,6 +124,11 @@ $(document).ready(function()
     toggleBotFields();
     toggleConditionalFields();
 
-    $('[name="main.enabled"]').on('change', toggleBotFields);
-    $('[name="filters.listener"], [name="trade.fastmode"], [name="trade.trailingstop"], [name="filters.filteroff"]').on('change', toggleConditionalFields);
+    $('[name="main.enabled"]').on('change', function()
+    {
+        toggleBotFields();
+        toggleConditionalFields();
+    });
+
+    $('[name="main.sandbox"], [name="filters.listener"], [name="trade.fastmode"], [name="trade.trailingstop"], [name="filters.filteroff"]').on('change', toggleConditionalFields);
 });

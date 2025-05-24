@@ -40,19 +40,12 @@ class SolanaClient:
 
     # Class initialization
     def __init__(self, rpcendpoint: str):
-        """
-        Initializes the SolanaClient with the given RPC endpoint and sets up internal structures
-        for caching, client instantiation, and blockhash updates. It prepares the instance to
-        communicate asynchronously with the Solana network using either low-level RPC POST
-        or high-level async client operations. No external setup is required beyond the endpoint.
-
-        Parameters:
-        - rpcendpoint (str): The URL of the Solana RPC endpoint to use for all blockchain queries.
-
-        Returns:
-        - None
-        """
+        """ Initializer description """
         self.rpcendpoint = rpcendpoint
+        self._client = None
+        self._cached_blockhash: Hash | None = None
+        self._blockhash_lock = asyncio.Lock()
+        self._blockhash_updater_task = asyncio.create_task(self.start_blockhash_updater())
 
     # Function 'PostRPC'
     async def PostRPC(self, body: dict[str, Any]) -> dict[str, Any] | None:
@@ -158,7 +151,7 @@ class SolanaClient:
         - AsyncClient: An instance of Solana's asynchronous client.
         """
         if self._client is None:
-            self._client = AsyncClient(self.rpc_endpoint)
+            self._client = AsyncClient(self.rpcendpoint)
         return self._client
 
     # Function 'close'

@@ -44,7 +44,7 @@ class BondingCurveState:
         "real_token_reserves" / Int64ul,
         "real_sol_reserves" / Int64ul,
         "token_total_supply" / Int64ul,
-        "complete" / Flag,
+        "complete" / Flag
     )
 
     # Class initialization
@@ -64,7 +64,7 @@ class BondingCurveState:
         if data[:8] != EXPECTED_DISCRIMINATOR:
             raise ValueError("Invalid curve state discriminator")
 
-        parsed = self.DEFSTRUCT.parse(data[8:])
+        parsed = BondingCurveState.DEFSTRUCT.parse(data[8:])
         self.__dict__.update(parsed)
 
     # Function 'calculate_price'
@@ -167,11 +167,19 @@ class BondingCurveHandler:
         """
         try:
             account = await self.client.get_account_info(curve_address)
-            if not account.data:
+            if not account or not getattr(account, "data", None):
+                logger.error(f"[CRITICAL] Bonding curve account {curve_address} is empty or invalid")
                 raise ValueError(f"No data in bonding curve account {curve_address}")
 
-            return BondingCurveState(account.data)
+            if not isinstance(account.data, bytes):
+                logger.error(f"[CRITICAL] Unexpected type for account.data: {type(account.data)} — expected bytes")
+                raise ValueError("account.data is not of type bytes")
 
+            logger.debug(f"Fetched account: {account}")
+            logger.debug(f"Type of account.data: {type(account.data)}")
+            logger.debug(f"Raw data preview: {account.data[:32] if isinstance(account.data, bytes) else account.data}")
+
+            return BondingCurveState(account.data)
         except Exception as e:
             logger.error(f"Failed to get curve state: {str(e)}")
             raise ValueError(f"Invalid curve state: {str(e)}")

@@ -1,6 +1,12 @@
 # Import libraries
 import asyncio
+import datetime
+import json
 import logging
+import os
+
+# Import packages
+from time import monotonic
 
 # Import local packages
 from core.client import SolanaClient
@@ -16,7 +22,6 @@ from handler.cleanup import handle_cleanup_after_sell
 from handler.cleanup import handle_cleanup_post_session
 from handler.seller import TokenSeller
 from monitoring.listeners import BlockListener
-from monitoring.listeners import GeyserListener
 from monitoring.listeners import LogsListener
 
 # Define 'logger'
@@ -151,22 +156,11 @@ class PumpAgent:
 
         # Initialize the appropriate listener type
         listener = listener.lower()
-        if listener == "geyser":
-            if not geyserendpoint or not geyserapitoken:
-                raise ValueError("Geyser endpoint and API token are required for geyser listener")
-
-            self.token_listener = GeyserListener(
-                geyserendpoint,
-                geyserapitoken,
-                geyserauthtype,
-                PumpAddresses.PROGRAM
-            )
-            logger.info("Using Geyser listener for token monitoring")
-        elif listener == "logs":
-            self.token_listener = LogsListener(wssendpoint, PumpAddresses.PROGRAM)
+        if listener == "logs":
+            self.tokenlistener = LogsListener(wssendpoint, PumpAddresses.PROGRAM)
             logger.info("Using logsSubscribe listener for token monitoring")
         else:
-            self.token_listener = BlockListener(wssendpoint, PumpAddresses.PROGRAM)
+            self.tokenlistener = BlockListener(wssendpoint, PumpAddresses.PROGRAM)
             logger.info("Using blockSubscribe listener for token monitoring")
 
         # Trading parameters
@@ -321,17 +315,7 @@ class PumpAgent:
             if sellresult.success:
                 logger.info(f"Successfully sold {tokendata.symbol}")
                 self.StoreTrade("sell", tokendata, sellresult.price, sellresult.amount, sellresult.tx_signature)
-
-                await handle_cleanup_after_sell
-                (
-                    self.solanaclient,
-                    self.wallet,
-                    tokendata.mint,
-                    self.priorityorderfee,
-                    self.cleanupmode,
-                    self.cleanupfee,
-                    self.cleanupburn
-                )
+                await handle_cleanup_after_sell(self.solanaclient, self.wallet, tokendata.mint, self.priorityorderfee, self.cleanupmode, self.cleanupfee, self.cleanupburn)
             else:
                 logger.error(f"Failed to sell {tokendata.symbol}: {sellresult.error_message}")
         else:
@@ -351,16 +335,7 @@ class PumpAgent:
         Returns:
         - None
         """
-        await handle_cleanup_after_failure
-        (
-            self.solanaclient,
-            self.wallet,
-            tokendata.mint,
-            self.priorityorderfee,
-            self.cleanupmode,
-            self.cleanupfee,
-            self.cleanupburn
-        )
+        await handle_cleanup_after_failure(self.solanaclient, self.wallet, tokendata.mint, self.priorityorderfee, self.cleanupmode, self.cleanupfee, self.cleanupburn)
 
     # Function 'CleanupResources'
     async def CleanupResources(self) -> None:
