@@ -25,11 +25,11 @@
                                     {% endif %}
                                     {% for key, value in data.items() %}
                                         {% if value is mapping %}
-                                            <fieldset class="mb-3{% if not (key == 'main' and 'enabled' in value) %} bot-fields{% endif %}">
+                                            <fieldset class="mb-3{% if not (key == 'main' and 'status' in value) %} bot-fields{% endif %}">
                                                 <legend class="fs-base fw-bold border-bottom text-uppercase pb-2 mb-3">{{key}}</legend>
                                                 {% for subkey, subval in value.items() %}
                                                     {% set fieldmeta = meta.get(key, {}).get(subkey, {}) %}
-                                                    <div class="mb-3 {% if not (key == 'main' and subkey == 'enabled') %}bot-fields{% endif %}">
+                                                    <div class="mb-3 {% if not (key == 'main' and subkey == 'status') %}bot-fields{% endif %}">
                                                         <label class="form-label">{{fieldmeta.label}}</label>
                                                         {% if fieldmeta.type == 'select' %}
                                                             <select class="form-control" name="{{key}}.{{subkey}}" required>

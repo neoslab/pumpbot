@@ -50,12 +50,12 @@ class LoginForm(FlaskForm):
 # Class 'WalletForm'
 class WalletForm(FlaskForm):
     """ Class description """
-    pubadd = StringField(
+    publicaddr = StringField(
         'Public Address',
         description='Solana wallet public address used for sending, receiving, and monitoring funds.',
         validators=[DataRequired()]
     )
-    prikey = StringField(
+    privatekey = StringField(
         'Private Key',
         description='Solana wallet private key used for signing transactions (keep this secret).',
         validators=[DataRequired()]

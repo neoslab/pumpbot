@@ -263,7 +263,7 @@ class PumpBotUI:
             """ Function description """
             data = request.get_json()
             filename = data.get('filename')
-            enabled = data.get('enabled')
+            status = data.get('status')
             filepath = os.path.join(self.botsdir, filename)
 
             if not os.path.isfile(filepath):
@@ -272,7 +272,7 @@ class PumpBotUI:
             try:
                 with open(filepath, 'r') as f:
                     config = yaml.safe_load(f) or {}
-                config.setdefault('main', {})['enabled'] = bool(enabled)
+                config.setdefault('main', {})['status'] = bool(status)
                 QuotedDumper.dumpyaml(filepath, config)
                 return jsonify({'success': True})
             except Exception as e:
@@ -318,13 +318,13 @@ class PumpBotUI:
                     filedata = yaml.safe_load(f) or {}
 
             if request.method == 'GET':
-                form.pubadd.data = filedata.get('pubadd', '')
-                form.prikey.data = filedata.get('prikey', '')
+                form.publicaddr.data = filedata.get('publicaddr', '')
+                form.privatekey.data = filedata.get('privatekey', '')
 
             if form.validate_on_submit():
                 data = {
-                    'pubadd': form.pubadd.data.strip(),
-                    'prikey': form.prikey.data.strip()
+                    'publicaddr': form.publicaddr.data.strip(),
+                    'privatekey': form.privatekey.data.strip()
                 }
 
                 try:
@@ -340,7 +340,7 @@ class PumpBotUI:
             return render_template('wallet.html', form=form, title='Wallet')
 
     # Function 'run'
-    def run(self, host='0.0.0.0', port=5000, debug=True):
+    def run(self, host='0.0.0.0', port=5002, debug=True):
         """ Function description """
         basedir = os.path.abspath(os.path.dirname(__file__))
         logdir = os.path.join(basedir, 'logs')

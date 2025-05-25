@@ -11,8 +11,8 @@ function showToast(message, type = 'success')
 
 function toggleBotFields() 
 {
-    const enabled = $('[name="main.enabled"]').val();
-    if(enabled === "True") 
+    const botstatus = $('[name="main.status"]').val();
+    if(botstatus === "True") 
     {
         $('.bot-fields').show();
     } 
@@ -22,7 +22,7 @@ function toggleBotFields()
     }
 }
 
-function toggleBotSwitch(filename, enabled) 
+function toggleBotSwitch(filename, botstatus) 
 {
     const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
     fetch('/switch', 
@@ -36,7 +36,7 @@ function toggleBotSwitch(filename, enabled)
         body: JSON.stringify(
         {
             filename: filename,
-            enabled: enabled
+            botstatus: status
         })
     }).then(response => 
     {
@@ -55,14 +55,16 @@ function toggleBotSwitch(filename, enabled)
     });
 }
 
-function toggleConditionalFields() 
+function toogleChangeFields() 
 {
-    const enabled = $('[name="main.enabled"]').val();
+    const botstatus = $('[name="main.status"]').val();
     const sandbox = $('[name="main.sandbox"]').val();
     const filteroff = $('[name="filters.filteroff"]').val();
     const fastmode = $('[name="trade.fastmode"]').val();
+    const holderscheck = $('[name="rules.holderscheck"]').val();
+    const trailprofit = $('[name="trade.trailprofit"]').val();
 
-    if(enabled === "True" && sandbox === "True") 
+    if(botstatus === "True" && sandbox === "True") 
     {
         $('[name="main.initbalance"]').closest('.mb-3').show();
     } 
@@ -80,6 +82,32 @@ function toggleConditionalFields()
         $('[name="trade.fasttokens"]').closest('.mb-3').hide();
     }
 
+    if(holderscheck === "True") 
+    {
+        $('[name="rules.holdersbalance"]').closest('.mb-3').show();
+    } 
+    else 
+    {
+        $('[name="rules.holdersbalance"]').closest('.mb-3').hide();
+    }
+
+    if(trailprofit === "True") 
+    {
+        $('[name="trade.trailone"]').closest('.mb-3').show();
+        $('[name="trade.trailtwo"]').closest('.mb-3').show();
+        $('[name="trade.trailthree"]').closest('.mb-3').show();
+        $('[name="trade.trailfour"]').closest('.mb-3').show();
+        $('[name="trade.trailfive"]').closest('.mb-3').show();
+    } 
+    else 
+    {
+        $('[name="trade.trailone"]').closest('.mb-3').hide();
+        $('[name="trade.trailtwo"]').closest('.mb-3').hide();
+        $('[name="trade.trailthree"]').closest('.mb-3').hide();
+        $('[name="trade.trailfour"]').closest('.mb-3').hide();
+        $('[name="trade.trailfive"]').closest('.mb-3').hide();
+    }
+
     const readonlyFields = 
     [
         'filters.matchstring',
@@ -95,7 +123,8 @@ function toggleConditionalFields()
         'rules.topholders',
         'rules.minholders',
         'rules.maxholders',
-        'rules.checkholders',
+        'rules.holderscheck',
+        'rules.holdersbalance',
         'rules.minliquidity',
         'rules.maxliquidity'
     ];
@@ -122,13 +151,13 @@ $(document).ready(function()
     });
 
     toggleBotFields();
-    toggleConditionalFields();
+    toogleChangeFields();
 
-    $('[name="main.enabled"]').on('change', function()
+    $('[name="main.status"]').on('change', function()
     {
         toggleBotFields();
-        toggleConditionalFields();
+        toogleChangeFields();
     });
 
-    $('[name="main.sandbox"], [name="filters.listener"], [name="trade.fastmode"], [name="trade.trailingstop"], [name="filters.filteroff"]').on('change', toggleConditionalFields);
+    $('[name="main.sandbox"], [name="filters.listener"], [name="filters.filteroff"], [name="trade.fastmode"], [name="trade.trailprofit"], [name="rules.holderscheck"]').on('change', toogleChangeFields);
 });

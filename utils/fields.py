@@ -13,7 +13,7 @@ class BotFields:
         """ Function description """
         return {
             'main': {
-                'enabled': {
+                'status': {
                     'label': 'Bot Status',
                     'type': 'select',
                     'description': 'Enable or disable this bot instance entirely.',
@@ -24,8 +24,8 @@ class BotFields:
                     'type': 'text',
                     'description': 'A unique name to identify and reference this specific bot configuration.'
                 },
-                'multithreads': {
-                    'label': 'Multithreads',
+                'multithread': {
+                    'label': 'Multithread',
                     'type': 'select',
                     'description': 'Enable concurrent execution to allow multiple bot components to run in parallel.',
                     'options': ['True', 'False']
@@ -41,11 +41,19 @@ class BotFields:
                     'type': 'text',
                     'description': 'Starting virtual balance in SOL for the bot when running in sandbox mode.'
                 },
-                'maxopentrades': {
+                'opentrades': {
                     'label': 'Max. Open Trades',
                     'type': 'text',
                     'description': 'Maximum number of simultaneous trades that can be open at any given time. Set to 0 for unlimited.'
                 }
+            },
+            'monitoring': {
+                'chain': {
+                    'label': 'Chain',
+                    'type': 'select',
+                    'description': 'Defines the event source to listen for token detection (e.g., new blocks or logs).',
+                    'options': ['blocks', 'logs']
+                },
             },
             'filters': {
                 'chainlistener': {
@@ -78,6 +86,21 @@ class BotFields:
                 }
             },
             'timing': {
+                'tokenidleinit': {
+                    'label': 'Token Initialization',
+                    'type': 'text',
+                    'description': 'Time to wait after a token is created before any trade can be considered.'
+                },
+                'tokenidleshort': {
+                    'label': 'Token Sell Period',
+                    'type': 'text',
+                    'description': 'Cooldown period after a token has been sold before it becomes eligible for another buy.'
+                },
+                'tokenidlenew': {
+                    'label': 'Token New Detection',
+                    'type': 'text',
+                    'description': 'Delay before scanning or acting on a newly detected token.'
+                },
                 'tokenminage': {
                     'label': 'Min. Token Age',
                     'type': 'text',
@@ -131,12 +154,38 @@ class BotFields:
                     'type': 'text',
                     'description': 'Profit threshold in percentage. The bot will sell if the price increases by this amount.'
                 },
-                'trailing': {
+                'trailprofit': {
                     'label': 'Trailing Profit',
-                    'type': 'text',
-                    'description': 'Activate a trailing stop once the price has increased by this percentage.'
+                    'type': 'select',
+                    'description': 'Activate multilevel trailing profit once the price has increased by these level.',
+                    'options': ['True', 'False']
                 },
-                'timeout': {
+                'trailone': {
+                    'label': 'Trailing Level 1',
+                    'type': 'text',
+                    'description': 'The first trailing profit level the bot must secure, expressed as a percentage.'
+                },
+                'trailtwo': {
+                    'label': 'Trailing Level 2',
+                    'type': 'text',
+                    'description': 'The second trailing profit level the bot must secure, expressed as a percentage.'
+                },
+                'trailthree': {
+                    'label': 'Trailing Level 3',
+                    'type': 'text',
+                    'description': 'The third trailing profit level the bot must secure, expressed as a percentage.'
+                },
+                'trailfour': {
+                    'label': 'Trailing Level 4',
+                    'type': 'text',
+                    'description': 'The fourth trailing profit level the bot must secure, expressed as a percentage.'
+                },
+                'trailfive': {
+                    'label': 'Trailing Level 5',
+                    'type': 'text',
+                    'description': 'The fifth trailing profit level the bot must secure, expressed as a percentage.'
+                },
+                'tradetimeout': {
                     'label': 'Trade Timeout',
                     'type': 'text',
                     'description': 'Maximum duration (in seconds) a trade can stay open without reaching stop loss or take profit.'
@@ -178,8 +227,8 @@ class BotFields:
                     'description': 'Maximum number of retry attempts for submitting a failed transaction before giving up.'
                 }
             },
-            'cleanup': {
-                'mode': {
+            'wipe': {
+                'clean': {
                     'label': 'Cleanup Mode',
                     'type': 'select',
                     'description': 'Defines when cleanup actions (e.g., burning or closing accounts) should occur.',
@@ -191,10 +240,10 @@ class BotFields:
                     'description': 'If enabled, any remaining tokens will be forcefully burned after trading.',
                     'options': ['True', 'False']
                 },
-                'fee': {
-                    'label': 'Priority Fee',
+                'rate': {
+                    'label': 'Priority Rate',
                     'type': 'select',
-                    'description': 'Use priority fees for cleanup-related transactions.',
+                    'description': 'Use priority rate for cleanup-related transactions.',
                     'options': ['True', 'False']
                 }
             },
@@ -244,11 +293,16 @@ class BotFields:
                     'type': 'text',
                     'description': 'Maximum number of holders allowed for a token to qualify.'
                 },
-                'checkholders': {
-                    'label': 'Check. Holders',
+                'holderscheck': {
+                    'label': 'Holders Check',
                     'type': 'select',
-                    'description': 'Enable check to verify that all holders have a minimum SOL balance.',
+                    'description': 'Enable to verify that all holders have a minimum SOL balance.',
                     'options': ['True', 'False']
+                },
+                'holdersbalance': {
+                    'label': 'Holders Balance',
+                    'type': 'text',
+                    'description': 'Minimum balance required in each holder\'s account for the token to qualify.'
                 },
                 'minliquidity': {
                     'label': 'Min. Liquidity Pool',

@@ -17,9 +17,9 @@ class PumpBotManager:
     """ Class description """
 
     # Class initialization
-    def __init__(self, bots_directory: str = "bots"):
+    def __init__(self, botspath: str = "bots"):
         """ Initializer description """
-        self.botsdir = Path(bots_directory)
+        self.botsdir = Path(botspath)
         self.processes = []
         self.skipbots = 0
 
@@ -27,42 +27,86 @@ class PumpBotManager:
     @staticmethod
     async def startbot(confpath: str):
         """ Function description """
-        loader = ConfLoader(confpath)
-        botconf = loader.config
+        nodeinfo = ConfLoader.endpoint()
+        loadwallet = ConfLoader.wallet()
+
+        # Load config
+        loadbot = ConfLoader(confpath)
+        botconf = loadbot.config
         LogFormat.save(botconf["main"]["name"])
-        loader.display()
+        loadbot.display()
 
         agent = PumpAgent(
-            rpcendpoint=botconf["main"]["rpcendpoint"],
-            wssendpoint=botconf["main"]["wssendpoint"],
-            privkey=botconf["main"]["privkey"],
-            buyamount=botconf["trade"]["buyamount"],
-            buyslippage=botconf["trade"]["buyslippage"],
-            sellslippage=botconf["trade"]["sellslippage"],
-            fastmode=botconf["trade"].get("fastmode", False),
-            fasttokens=botconf["trade"].get("fasttokens", 30),
-            listener=botconf["filters"]["listener"],
-            geyserendpoint=botconf.get("geyser", {}).get("endpoint"),
-            geyserapitoken=botconf.get("geyser", {}).get("apitoken"),
-            geyserauthtype=botconf.get("geyser", {}).get("authtype"),
-            prioritydynenabled=botconf.get("priority", {}).get("enabledynamic", False),
-            priorityfixenabled=botconf.get("priority", {}).get("enablefixed", True),
-            prioritybaselamports=botconf.get("priority", {}).get("baselamports", 500000),
-            priorityextrafee=botconf.get("priority", {}).get("extrapercent", 0.0),
-            priorityhardcap=botconf.get("priority", {}).get("hardcap", 500000),
-            maxretries=botconf.get("retries", {}).get("maxattempts", 10),
-            waitaftercreation=botconf.get("retries", {}).get("waitaftercreation", 15),
-            waitafterbuy=botconf.get("retries", {}).get("waitafterbuy", 15),
-            waitnewtoken=botconf.get("retries", {}).get("waitnewtoken", 15),
-            maxtokenage=botconf.get("timing", {}).get("tokenmaxage", 0.001),
-            waittokentimeout=botconf.get("timing", {}).get("tokentimeout", 30),
-            cleanupmode=botconf.get("cleanup", {}).get("mode", "disabled"),
-            cleanupburn=botconf.get("cleanup", {}).get("forceburn", False),
-            cleanupfee=botconf.get("cleanup", {}).get("priorityfee", False),
-            matchstring=botconf["filters"].get("matchstring"),
-            useraddress=botconf["filters"].get("useraddress"),
-            noshorting=botconf["filters"].get("noshorting", False),
-            filteroff=botconf["filters"].get("filteroff", False),
+            # General
+            rpcendpoint = nodeinfo["rpc"],
+            wssendpoint = nodeinfo["wss"],
+            apiendpoint = nodeinfo["api"],
+            privatekey = loadwallet["privatekey"],
+
+            # Main
+            botstatus = botconf["main"]["status"],
+            multithread = botconf["main"]["multithread"],
+            sandbox = botconf["main"]["sandbox"],
+            initbalance = botconf["main"]["initbalance"],
+            opentrades = botconf["main"]["opentrades"],
+
+            # Monitoring
+            chainlistener = botconf["monitoring"]["chain"],
+
+            # Filters
+            matchstring = botconf["filters"]["matchstring"],
+            matchaddress = botconf["filters"]["matchaddress"],
+            noshorting = botconf["filters"]["noshorting"],
+            filteroff = botconf["filters"]["filteroff"],
+
+            # Timing:
+            tokenidleinit = botconf["timing"]["tokenidleinit"],
+            tokenidleshort = botconf["timing"]["tokenidleshort"],
+            tokenidlenew = botconf["timing"]["tokenidlenew"],
+            tokenminage = botconf["timing"]["tokenminage"],
+            tokenmaxage = botconf["timing"]["tokenmaxage"],
+            tokentimeout = botconf["timing"]["tokentimeout"],
+
+            # Trade:
+            buyamount = botconf["trade"]["buyamount"],
+            buyslippage = botconf["trade"]["buyslippage"],
+            sellslippage = botconf["trade"]["sellslippage"],
+            fastmode = botconf["trade"]["fastmode"],
+            fasttokens = botconf["trade"]["fasttokens"],
+            stoploss = botconf["trade"]["stoploss"],
+            takeprofit = botconf["trade"]["takeprofit"],
+            trailprofit = botconf["trade"]["trailprofit"],
+            tradetimeout = botconf["trade"]["timeout"],
+
+            # Priority:
+            priodynamic = botconf["priority"]["dynamic"],
+            priofixed = botconf["priority"]["fixed"],
+            priolamports = botconf["priority"]["lamports"],
+            prioextrafee = botconf["priority"]["extra"],
+            priohardcap = botconf["priority"]["hardcap"],
+
+            # Retries:
+            maxattempts = botconf["retries"]["attempts"],
+
+            # Wipe:
+            cleanall = botconf["wipe"]["clean"],
+            cleanburn = botconf["wipe"]["burn"],
+            cleanrate = botconf["wipe"]["rate"],
+
+            # Rules:
+            minmarketcap = botconf["rules"]["minmarketcap"],
+            maxmarketcap = botconf["rules"]["maxmarketcap"],
+            minmarketvol = botconf["rules"]["minmarketvol"],
+            maxmarketvol = botconf["rules"]["maxmarketvol"],
+            minholdowner = botconf["rules"]["minholdowner"],
+            maxholdowner = botconf["rules"]["maxholdowner"],
+            topholders = botconf["rules"]["topholders"],
+            minholders = botconf["rules"]["minholders"],
+            maxholders = botconf["rules"]["maxholders"],
+            holderscheck = botconf["rules"]["holderscheck"],
+            holdersbalance = botconf["rules"]["holdersbalance"],
+            minliquidity = botconf["rules"]["minliquidity"],
+            maxliquidity = botconf["rules"]["maxliquidity"]
         )
 
         await agent.AgentStart()
@@ -91,15 +135,14 @@ class PumpBotManager:
                 botmain = botconf.get("main", {})
                 botname = botmain.get("name", botfile.stem)
 
-                if not botmain.get("enabled", True):
+                if not botmain.get("status", True):
                     logging.info(f"Skipping disabled bot '{botname}'")
                     self.skipbots += 1
                     continue
 
-                mode = "sandbox" if botmain.get("sandbox", False) else "market"
-
-                if botmain.get("separate", False):
-                    logging.info(f"Starting bot '{botname}' in {mode} mode and separate process")
+                trademode = "sandbox" if botmain.get("sandbox", False) else "market"
+                if botmain.get("multithread", False):
+                    logging.info(f"Starting bot '{botname}' in {trademode} mode and multithread process")
                     process = multiprocessing.Process(
                         target=self.botprocess,
                         args=(str(botfile),),
@@ -108,7 +151,7 @@ class PumpBotManager:
                     process.start()
                     self.processes.append(process)
                 else:
-                    logging.info(f"Starting bot '{botname}' in {mode} mode and main process")
+                    logging.info(f"Starting bot '{botname}' in {trademode} mode and main process")
                     asyncio.run(self.startbot(str(botfile)))
 
             except Exception as e:

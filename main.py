@@ -1,4 +1,4 @@
-# Import PIP packages
+# Import packages
 from app import PumpBotUI
 from bot import PumpBotManager
 
@@ -7,12 +7,12 @@ from bot import PumpBotManager
 def main():
     """ Function description """
     # Start User Interface
-    #app = PumpBotUI()
-    #app.run()
+    app = PumpBotUI()
+    app.run()
 
     # Start Bot Handler
-    bot = PumpBotManager()
-    bot.run()
+    #bot = PumpBotManager()
+    #bot.run()
 
 
 # Main callback

@@ -5,15 +5,15 @@
 main:
     # Bot Status
     # Enable or disable this bot instance entirely.
-    enabled: False
+    status: False
 
     # Bot Name
     # A unique name to identify and reference this specific bot configuration.
     name: "bot-trader-1"
 
-    # Multithreads
+    # Multithread
     # Enable concurrent execution to allow multiple bot components to run in parallel.
-    multithreads: False
+    multithread: False
 
     # Sandbox Mode
     # When enabled, activates paper trading mode (simulated trades with no real SOL).
@@ -25,14 +25,16 @@ main:
 
     # Max. Open Trades
     # Maximum number of simultaneous trades that can be open at any given time. Set to 0 for unlimited.
-    maxopentrades: 5
+    opentrades: 5
+
+# Monitoring for token selection
+monitoring:
+    # Listener
+    # Defines the event source to listen for token detection (e.g., new blocks or logs).
+    chain: "logs"
 
 # Filters for token selection
 filters:
-    # Listener
-    # Defines the event source to listen for token detection (e.g., new blocks or logs).
-    chainlistener: "logs"
-
     # Match String
     # Only consider tokens whose name or symbol contains this substring.
     matchstring: Null
@@ -51,6 +53,18 @@ filters:
 
 # Token timing configuration
 timing:
+    # Token Initialization
+    # Time to wait after a token is created before any trade can be considered.
+    tokenidleinit: 15
+
+    # Token Sell Period
+    # Cooldown period after a token has been sold before it becomes eligible for another buy.
+    tokenidleshort: 15
+
+    # Token New Detection
+    # Delay before scanning or acting on a newly detected token.
+    tokenidlenew: 15
+
     # Min. Token Age
     # Minimum token age (in seconds) to qualify for trading.
     tokenminage: 0.001
@@ -94,12 +108,32 @@ trade:
     takeprofit: 50
 
     # Trailing Profit
-    # Activate a trailing stop once the price has increased by this percentage.
-    trailing: 20
+    # Activate multilevel trailing profit once the price has increased by these level.
+    trailprofit: False
+
+    # Trailing Level 1
+    # The first trailing profit level the bot must secure, expressed as a percentage.
+    trailone: 50
+
+    # Trailing Level 2
+    # The second trailing profit level the bot must secure, expressed as a percentage.
+    trailtwo: 50
+
+    # Trailing Level 3
+    # The third trailing profit level the bot must secure, expressed as a percentage.
+    trailthree: 50
+
+    # Trailing Level 4
+    # The fourth trailing profit level the bot must secure, expressed as a percentage.
+    trailfour: 50
+
+    # Trailing Level 5
+    # The first fifth profit level the bot must secure, expressed as a percentage.
+    trailfive: 50
 
     # Trade Timeout
     # Maximum duration (in seconds) a trade can stay open without reaching stop loss or take profit.
-    timeout: 900
+    tradetimeout: 900
 
 # Priority fee configuration
 priority:
@@ -130,22 +164,22 @@ retries:
     attempts: 1
 
 # Token and account management
-cleanup:
+wipe:
     # Cleanup Mode
     # Defines when cleanup actions (e.g., burning or closing accounts) should occur.
     # disabled   > no cleanup will occur.
     # fail       > only clean up if a buy transaction fails.
     # sell       > clean up after selling.
     # session    > clean up all empty accounts after a trading session ends.
-    mode: "session"
+    clean: "session"
 
     # Force Burn
     # If enabled, any remaining tokens will be forcefully burned after trading.
     burn: False
 
-    # Priority Fee
+    # Priority Rate
     # Use priority fees for cleanup-related transactions.
-    fee: False
+    rate: False
 
 # Rules
 rules:
@@ -178,16 +212,20 @@ rules:
     topholders: 20
 
     # Min. Holders
-    # Minimum number of unique token holders required for eligibility.
+    # Minimum number of holders required for a token to qualify.
     minholders: 10
 
     # Max. Holders
     # Maximum number of holders allowed for a token to qualify.
     maxholders: 20
 
-    # Check. Holders
-    # Enable check to verify that all holders have a minimum SOL balance.
-    checkholders: True
+    # Holders Check
+    # Enable to verify that all holders have a minimum SOL balance.
+    holderscheck: False
+
+    # Holders Balance
+    # Minimum balance required in each holder's account for the token to qualify.
+    holdersbalance: 0.1
 
     # Min. Liquidity Pool
     # Minimum liquidity (in USD) the token must have in its trading pool.
