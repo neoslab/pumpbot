@@ -30,44 +30,11 @@ EXPECTED_DISCRIMINATOR: Final[bytes] = struct.pack("<Q", 12502976635542562355)
 
 # Class 'TokenSeller'
 class TokenSeller(Trader):
-    """
-    This class handles the logic for selling tokens on the Pump.fun platform using the Solana blockchain.
-    It integrates bonding curve pricing to determine token value, calculates minimum acceptable
-    output based on slippage settings, and constructs transactions that transfer tokens back to
-    the curve contract in exchange for SOL. It supports priority fees and retries, and is intended
-    to be used after a successful buy or as part of a complete trade cycle.
-
-    Parameters:
-    - client (SolanaClient): RPC client used to interact with Solana.
-    - wallet (Wallet): Wallet instance used to sign and authorize the transaction.
-    - curve_manager (BondingCurveHandler): Used to get current curve-based price for the token.
-    - priority_fee_manager (PriorityFeeHandler): Fee manager to inject priority fees.
-    - slippage (float): Acceptable percentage of slippage for the trade (default: 0.25).
-    - max_retries (int): Maximum number of times to retry transaction submission.
-
-    Returns:
-    - None
-    """
+    """ Class description """
 
     # Class initialization
     def __init__(self, client: SolanaClient, wallet: Wallet, curve_manager: BondingCurveHandler, priority_fee_manager: PriorityFeeHandler, slippage: float = 0.25, max_retries: int = 5):
-        """
-        Initializes the TokenSeller instance by injecting dependencies such as the RPC client,
-        wallet, bonding curve manager, and priority fee manager. Configures transaction behavior
-        by setting allowed slippage and retry count. This sets up the seller to execute
-        slippage-safe and fee-aware token sale transactions.
-
-        Parameters:
-        - client (SolanaClient): Solana RPC client for querying and submitting transactions.
-        - wallet (Wallet): Wallet used to sign the transaction and receive funds.
-        - curve_manager (BondingCurveHandler): Component to get curve-based token pricing.
-        - priority_fee_manager (PriorityFeeHandler): Manager to calculate dynamic or fixed fees.
-        - slippage (float): Percentage tolerance for slippage during sale.
-        - max_retries (int): Number of retries allowed if transaction fails to confirm.
-
-        Returns:
-        - None
-        """
+        """ Initializer description """
         self.client = client
         self.wallet = wallet
         self.curve_manager = curve_manager
@@ -77,20 +44,7 @@ class TokenSeller(Trader):
 
     # Function 'execute'
     async def execute(self, token_info: TokenInfo, *args, **kwargs) -> TradeResult:
-        """
-        Executes the token sale operation. First, it retrieves the token balance from the user's
-        associated token account and calculates the current price using the bonding curve.
-        It then computes the expected SOL output and applies the configured slippage to determine
-        the minimum acceptable output. A transaction is constructed and submitted to sell the tokens.
-        Confirmation is awaited, and a `TradeResult` is returned with the result of the operation.
-
-        Parameters:
-        - token_info (TokenInfo): Metadata for the token to sell, including mint and curve data.
-        - *args, **kwargs: Accepts arbitrary arguments for future extensibility.
-
-        Returns:
-        - TradeResult: Contains outcome of the sale (success, tx signature, price, amount).
-        """
+        """ Function description """
         try:
             associated_token_account = self.wallet.get_associated_token_address(token_info.mint)
             token_balance = await self.client.get_token_account_balance(associated_token_account)
@@ -128,21 +82,7 @@ class TokenSeller(Trader):
 
     # Function '_send_sell_transaction'
     async def _send_sell_transaction(self, token_info: TokenInfo, associated_token_account: Pubkey, token_amount: int, min_sol_output: int) -> str:
-        """
-        Constructs and submits a token sale transaction using the Pump.fun protocol. This method builds
-        all required account metadata, encodes the instruction with the sale amount and minimum SOL
-        output, and optionally applies priority fees. Upon success, it returns the transaction signature.
-        Errors are logged and re-raised to be handled by the caller.
-
-        Parameters:
-        - token_info (TokenInfo): Object containing mint, bonding curve, and fee addresses.
-        - associated_token_account (Pubkey): Wallet's token account holding the tokens to be sold.
-        - token_amount (int): Raw integer amount of tokens to sell (scaled to token decimals).
-        - min_sol_output (int): Minimum amount of lamports (SOL) acceptable for the trade.
-
-        Returns:
-        - str: The transaction signature of the successfully submitted trade.
-        """
+        """ Function description """
         accounts = [
             AccountMeta(pubkey = PumpAddresses.GLOBAL, is_signer = False, is_writable = False),
             AccountMeta(pubkey = PumpAddresses.FEE, is_signer = False, is_writable = True),

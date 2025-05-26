@@ -21,52 +21,19 @@ logger = logging.getLogger(__name__)
 
 # Class 'LogsProcessor'
 class LogsProcessor:
-    """
-    This class parses logs emitted during transaction execution on Solana to detect Pump.fun token creation.
-    It identifies the presence of specific instructions via "Program log" statements and decodes base64-encoded
-    instruction data embedded in those logs. This method enables token detection using the logsSubscribe
-    WebSocket subscription type, without needing to decode full transactions.
-
-    Parameters:
-    - pump_program (Pubkey): The Pump.fun program ID to match against incoming logs.
-
-    Returns:
-    - None
-    """
+    """ Class description """
 
     # Define 'CREATE_DISCRIMINATOR'
     CREATE_DISCRIMINATOR: Final[int] = 8530921459188068891
 
     # Class initialization
     def __init__(self, pump_program: Pubkey):
-        """
-        Initializes the processor by storing the Pump.fun program ID for use in log or instruction validation.
-        This ensures that only relevant logs or instructions belonging to the specified Pump.fun program
-        are processed when parsing transaction or log data. The program ID is required to distinguish valid
-        Pump.fun instructions from other on-chain activities.
-
-        Parameters:
-        - pump_program (Pubkey): The public key of the Pump.fun program to filter and verify instructions.
-
-        Returns:
-        - None
-        """
+        """ Initializer description """
         self.pump_program = pump_program
 
     # Function 'process_program_logs'
     def process_program_logs(self, logs: list[str], signature: str) -> TokenInfo | None:
-        """
-        Scans a list of logs for signs of a Pump.fun token creation instruction. If present, the method
-        extracts and decodes the base64-encoded instruction data embedded in the log line and parses it
-        into a `TokenInfo` object. This enables token discovery via log-level data without replaying transactions.
-
-        Parameters:
-        - logs (list[str]): A list of program logs from the Solana transaction.
-        - signature (str): The transaction signature, used for identification and traceability.
-
-        Returns:
-        - TokenInfo | None: Returns token metadata if creation is detected; otherwise None.
-        """
+        """ Function description """
         if not any("Program log: Instruction: Create" in log for log in logs):
             return None
 
@@ -103,17 +70,7 @@ class LogsProcessor:
 
     # Function '_parse_create_instruction'
     def _parse_create_instruction(self, data: bytes) -> dict | None:
-        """
-        Parses a raw byte buffer representing the `Create` instruction for a Pump.fun token.
-        The function extracts the name, symbol, URI, and three public key values (mint, bonding curve, user)
-        using offset-based decoding logic. Returns a dictionary representing the parsed structure.
-
-        Parameters:
-        - data (bytes): Instruction byte array extracted from the log.
-
-        Returns:
-        - dict | None: Dictionary of decoded values or None if the structure is invalid.
-        """
+        """ Function description """
         if len(data) < 8:
             return None
 
@@ -136,6 +93,7 @@ class LogsProcessor:
 
         try:
             for field_name, field_type in fields:
+                value = None
                 if field_type == "string":
                     length = struct.unpack("<I", data[offset: offset + 4])[0]
                     offset += 4
@@ -153,19 +111,9 @@ class LogsProcessor:
             return None
 
     # Function '_find_associated_bonding_curve'
-    def _find_associated_bonding_curve(self, mint: Pubkey, bonding_curve: Pubkey) -> Pubkey:
-        """
-        Derives the associated bonding curve address for a token by combining the bonding curve, token
-        program ID, and mint address as seeds. This ensures the address matches what Pump.fun expects
-        for token routing and reserve accounting.
-
-        Parameters:
-        - mint (Pubkey): Token mint public key.
-        - bonding_curve (Pubkey): Main bonding curve address.
-
-        Returns:
-        - Pubkey: The derived associated bonding curve address.
-        """
+    @staticmethod
+    def _find_associated_bonding_curve(mint: Pubkey, bonding_curve: Pubkey) -> Pubkey:
+        """ Function description """
         derived_address, _ = Pubkey.find_program_address(
             [
                 bytes(bonding_curve),
@@ -179,54 +127,21 @@ class LogsProcessor:
 
 # Class 'PumpProcessor'
 class PumpProcessor:
-    """
-    This processor handles full Pump.fun transaction decoding using the Solana IDL system.
-    It extracts and parses create-token instructions by decoding base64-encoded transaction blobs,
-    matching known discriminators, and using IDL definitions to parse arguments. This is useful for
-    structured transaction ingestion, debugging, or verifying token creation steps at runtime.
-
-    Parameters:
-    - pump_program (Pubkey): Program ID of the Pump.fun smart contract.
-
-    Returns:
-    - None
-    """
+    """ Class description """
 
     # Define 'CREATE_DISCRIMINATOR'
     CREATE_DISCRIMINATOR = 8576854823835016728
 
     # Class initialization
     def __init__(self, pump_program: Pubkey):
-        """
-        Initializes the PumpProcessor by assigning the target Pump.fun program ID and
-        attempting to load the corresponding Interface Definition Language (IDL) file used
-        to decode transaction instructions. The IDL provides a structured schema to interpret
-        arguments passed to the `create` instruction. This setup enables decoding of Pump.fun
-        transactions captured via Geyser or RPC streams.
-
-        Parameters:
-        - pump_program (Pubkey): The public key of the Pump.fun program that this processor will decode.
-
-        Returns:
-        - None
-        """
+        """ Initializer description """
         self.pump_program = pump_program
         self._idl = self._load_idl()
 
     # Function '_load_idl'
-    def _load_idl(self) -> dict[str, Any]:
-        """
-        Attempts to load the Pump.fun IDL (interface definition language) file from disk.
-        If the file is not found or cannot be parsed, a default minimal fallback definition
-        is used. This enables dynamic decoding of transaction instructions based on field names
-        and types defined in the contract specification.
-
-        Parameters:
-        - None
-
-        Returns:
-        - dict[str, Any]: Dictionary representing the IDL, used for decoding instruction arguments.
-        """
+    @staticmethod
+    def _load_idl() -> dict[str, Any]:
+        """ Function description """
         try:
             with open("dex/pumpswap.json") as f:
                 return json.load(f)
@@ -247,18 +162,7 @@ class PumpProcessor:
 
     # Function 'process_transaction'
     def process_transaction(self, tx_data: str) -> TokenInfo | None:
-        """
-        Processes a base64-encoded Solana transaction string to determine if it includes a valid
-        Pump.fun token creation. If a matching instruction is found and all arguments are successfully
-        parsed, the method returns a `TokenInfo` object. This is a deep decoder that parses the full
-        instruction from a VersionedTransaction.
-
-        Parameters:
-        - tx_data (str): Base64-encoded transaction string received from RPC or Geyser.
-
-        Returns:
-        - TokenInfo | None: Decoded token metadata if the transaction is a valid Pump.fun creation.
-        """
+        """ Function description """
         try:
             tx_data_decoded = base64.b64decode(tx_data)
             transaction = VersionedTransaction.from_bytes(tx_data_decoded)
@@ -317,21 +221,9 @@ class PumpProcessor:
         return None
 
     # Function '_decode_create_instruction'
-    def _decode_create_instruction(self, ix_data: bytes, ix_def: dict[str, Any], accounts: list[Pubkey]) -> dict[str, Any]:
-        """
-        Decodes the arguments from a Pump.fun `create` instruction using the provided IDL definition.
-        It parses each field using its declared type, extracting strings or public keys as appropriate.
-        Account positions are mapped manually to mint, bonding curve, and user values to complete
-        the token metadata structure.
-
-        Parameters:
-        - ix_data (bytes): Instruction bytes beginning with a discriminator.
-        - ix_def (dict[str, Any]): The parsed IDL definition for the instruction.
-        - accounts (list[Pubkey]): The account list used in the instruction, ordered by index.
-
-        Returns:
-        - dict[str, Any]: A dictionary containing all parsed arguments and account references.
-        """
+    @staticmethod
+    def _decode_create_instruction(ix_data: bytes, ix_def: dict[str, Any], accounts: list[Pubkey]) -> dict[str, Any]:
+        """ Function description """
         args = {}
         offset = 8
 

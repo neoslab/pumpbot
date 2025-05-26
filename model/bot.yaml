@@ -75,7 +75,7 @@ timing:
 
     # Token Timeout
     # Timeout (in seconds) to wait for token metadata or price response before skipping.
-    tokentimeout: 30
+    ordertimeout: 30
 
 # Trading parameters
 trade:

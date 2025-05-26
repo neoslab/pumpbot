@@ -1,8 +1,8 @@
 # Import libraries
 import datetime
 import os
-import uuid
 import sys
+import uuid
 import yaml
 
 # Import packages
@@ -203,10 +203,10 @@ class PumpBotUI:
                     try:
                         with open(filepath, 'r') as f:
                             config = yaml.safe_load(f)
-                            enabled = config.get('main', {}).get('enabled', False)
+                            status = config.get('main', {}).get('status', False)
                     except (ValueError, TypeError):
-                        enabled = False
-                    botfiles.append({'filename': filename, 'enabled': enabled, 'id': f"switch_{uuid.uuid4().hex[:8]}"})
+                        status = False
+                    botfiles.append({'filename': filename, 'status': status, 'id': f"switch_{uuid.uuid4().hex[:8]}"})
             return render_template('home.html', files=botfiles, title='Dashboard')
 
         # Function 'login'
@@ -319,7 +319,7 @@ class PumpBotUI:
 
             if request.method == 'GET':
                 form.publicaddr.data = filedata.get('publicaddr', '')
-                form.privatekey.data = filedata.get('privatekey', '')
+                form.publicaddr.data = filedata.get('privatekey', '')
 
             if form.validate_on_submit():
                 data = {
@@ -340,7 +340,7 @@ class PumpBotUI:
             return render_template('wallet.html', form=form, title='Wallet')
 
     # Function 'run'
-    def run(self, host='0.0.0.0', port=5002, debug=True):
+    def run(self, host='0.0.0.0', port=5002, debug=False):
         """ Function description """
         basedir = os.path.abspath(os.path.dirname(__file__))
         logdir = os.path.join(basedir, 'logs')
@@ -355,3 +355,16 @@ class PumpBotUI:
         sys.stdout = open(logfile, 'a')
         sys.stderr = sys.stdout
         self.app.run(host=host, port=port, debug=debug)
+
+
+# Function 'def main():"
+def main():
+    """ Function description """
+    app = PumpBotUI()
+    app.run()
+
+
+# Main callback
+if __name__ == '__main__':
+    """ Function description """
+    main()

@@ -185,8 +185,8 @@ class BotFields:
                     'type': 'text',
                     'description': 'The fifth trailing profit level the bot must secure, expressed as a percentage.'
                 },
-                'tradetimeout': {
-                    'label': 'Trade Timeout',
+                'swaptimeout': {
+                    'label': 'Swap Timeout',
                     'type': 'text',
                     'description': 'Maximum duration (in seconds) a trade can stay open without reaching stop loss or take profit.'
                 }

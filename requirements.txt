@@ -10,8 +10,10 @@ solders>=0.26.0
 websockets>=15.0
 wtforms>=3.2.1
 
-# Dependencies
+# Fix Construct
 borsh-construct>=0.1.0
 construct>=2.10.67
 construct-typing>=0.5.2
 
+# For Linux only (Uncomment)
+# uvloop>=0.21.0

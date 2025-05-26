@@ -22,7 +22,7 @@
                                         <td style="text-align:left;">{{ bot.filename }}</td>
                                         <td style="text-align:center;width:140px;">
                                             <div class="form-check form-switch form-check-reverse text-start mb-2">
-                                                <input id="{{bot.id}}" type="checkbox" class="form-check-input" {% if bot.enabled %}checked{% endif %} onchange="toggleBotSwitch('{{bot.filename}}', this.checked)">
+                                                <input id="{{bot.id}}" type="checkbox" class="form-check-input" {% if bot.status %}checked{% endif %} onchange="toggleBotSwitch('{{bot.filename}}', this.checked)">
                                             </div>
                                         </td>
                                     </tr>

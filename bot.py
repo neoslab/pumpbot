@@ -2,31 +2,28 @@
 import asyncio
 import logging
 import multiprocessing
-
-# Import packages
+import time
 from pathlib import Path
 
-# Import dependencies
+# Import packages
 from utils.loader import ConfLoader
 from utils.logger import LogFormat
+from utils.loop import set_event_loop
 from handler.agent import PumpAgent
-
+set_event_loop()
 
 # Class 'PumpBotManager'
 class PumpBotManager:
-    """ Class description """
+    """Manager to load and execute Pump trading bots."""
 
-    # Class initialization
     def __init__(self, botspath: str = "bots"):
-        """ Initializer description """
         self.botsdir = Path(botspath)
         self.processes = []
         self.skipbots = 0
 
-    # Function 'startbot'
     @staticmethod
     async def startbot(confpath: str):
-        """ Function description """
+        """Load config and start a PumpAgent asynchronously."""
         nodeinfo = ConfLoader.endpoint()
         loadwallet = ConfLoader.wallet()
 
@@ -59,7 +56,7 @@ class PumpBotManager:
             noshorting = botconf["filters"]["noshorting"],
             filteroff = botconf["filters"]["filteroff"],
 
-            # Timing:
+            # Timing
             tokenidleinit = botconf["timing"]["tokenidleinit"],
             tokenidleshort = botconf["timing"]["tokenidleshort"],
             tokenidlenew = botconf["timing"]["tokenidlenew"],
@@ -67,7 +64,7 @@ class PumpBotManager:
             tokenmaxage = botconf["timing"]["tokenmaxage"],
             tokentimeout = botconf["timing"]["tokentimeout"],
 
-            # Trade:
+            # Trade
             buyamount = botconf["trade"]["buyamount"],
             buyslippage = botconf["trade"]["buyslippage"],
             sellslippage = botconf["trade"]["sellslippage"],
@@ -76,24 +73,24 @@ class PumpBotManager:
             stoploss = botconf["trade"]["stoploss"],
             takeprofit = botconf["trade"]["takeprofit"],
             trailprofit = botconf["trade"]["trailprofit"],
-            tradetimeout = botconf["trade"]["timeout"],
+            tradetimeout = botconf["trade"]["swaptimeout"],
 
-            # Priority:
+            # Priorities
             priodynamic = botconf["priority"]["dynamic"],
             priofixed = botconf["priority"]["fixed"],
             priolamports = botconf["priority"]["lamports"],
             prioextrafee = botconf["priority"]["extra"],
             priohardcap = botconf["priority"]["hardcap"],
 
-            # Retries:
+            # Retries
             maxattempts = botconf["retries"]["attempts"],
 
-            # Wipe:
+            # Wipe
             cleanall = botconf["wipe"]["clean"],
             cleanburn = botconf["wipe"]["burn"],
             cleanrate = botconf["wipe"]["rate"],
 
-            # Rules:
+            # Rules
             minmarketcap = botconf["rules"]["minmarketcap"],
             maxmarketcap = botconf["rules"]["maxmarketcap"],
             minmarketvol = botconf["rules"]["minmarketvol"],
@@ -111,24 +108,23 @@ class PumpBotManager:
 
         await agent.AgentStart()
 
-    # Function 'botprocess'
     def botprocess(self, confpath: str):
-        """ Function description """
+        """Run a bot inside its own process."""
         asyncio.run(self.startbot(confpath))
 
-    # Function 'execbots'
     def execbots(self):
-        """ Function description """
+        """Scan config directory and launch bots."""
         if not self.botsdir.exists():
-            logging.error(f"Bot directory '{self.botsdir}' not found")
-            return
+            logging.warning(f"Bot directory '{self.botsdir}' not found")
+            return False
 
         botsdata = list(self.botsdir.glob("*.yaml"))
         if not botsdata:
-            logging.error(f"No bot configuration files found in '{self.botsdir}'")
-            return
+            logging.warning(f"No bot configuration files found in '{self.botsdir}'")
+            return False
 
         logging.info(f"Found {len(botsdata)} bot configuration files")
+
         for botfile in botsdata:
             try:
                 botconf = ConfLoader(str(botfile)).config
@@ -159,13 +155,41 @@ class PumpBotManager:
 
         logging.info(f"Started {len(botsdata) - self.skipbots} bots - skipped {self.skipbots} disabled bots")
 
+        # Wait for all subprocesses to finish
         for process in self.processes:
             process.join()
             logging.info(f"Process {process.name} completed")
 
-    # Function 'run'
+        return True
+
     def run(self):
-        """ Function description """
-        print("Welcome to PumpBot")
+        """Run the manager loop forever."""
         LogFormat.show()
-        self.execbots()
+        while True:
+            try:
+                self.processes.clear()
+                self.skipbots = 0
+                success = self.execbots()
+
+                if success:
+                    logging.info("All bots executed successfully. Restarting loop shortly...")
+                else:
+                    logging.info("No bots found or launched. Retrying...")
+
+                time.sleep(5)
+            except (RuntimeError, ValueError) as e:
+                logging.error(f"Error: {e}")
+                time.sleep(1)
+
+
+# Function 'def main():"
+def main():
+    """ Function description """
+    bot = PumpBotManager()
+    bot.run()
+
+
+# Main callback
+if __name__ == '__main__':
+    """ Function description """
+    main()

@@ -36,7 +36,7 @@ function toggleBotSwitch(filename, botstatus)
         body: JSON.stringify(
         {
             filename: filename,
-            botstatus: status
+            status: botstatus
         })
     }).then(response => 
     {

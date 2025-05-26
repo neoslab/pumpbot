@@ -1,11 +1,12 @@
 # Import libraries
 import asyncio
-import datetime
 import json
 import logging
 import os
 
 # Import packages
+from datetime import datetime
+from datetime import UTC
 from time import monotonic
 from solders.pubkey import Pubkey
 
@@ -18,9 +19,7 @@ from core.wallet import Wallet
 from handler.base import TokenInfo
 from handler.base import TradeResult
 from handler.buyer import TokenBuyer
-from handler.cleanup import handle_cleanup_after_failure
-from handler.cleanup import handle_cleanup_after_sell
-from handler.cleanup import handle_cleanup_post_session
+from handler.cleanup import CleanupHandler
 from handler.seller import TokenSeller
 from monitoring.listeners import BlockListener
 from monitoring.listeners import LogsListener
@@ -36,84 +35,87 @@ class PumpAgent:
     # Class initialization
     def __init__(self,
             # Node
-            rpcendpoint: str,                       # In use
-            wssendpoint: str,                       # In use
-            apiendpoint: str,                       # Not used
+            rpcendpoint: str,
+            wssendpoint: str,
+            apiendpoint: str,
 
             # Wallet
-            privatekey: str,                        # In use
+            privatekey: str,
 
             # Main
-            botstatus: str,                         # In use
-            multithread: bool = False,              # In use
-            sandbox: bool = False,                  # In use
-            initbalance: int = 10,                  # In use
-            opentrades: int = 5,                    # In use
+            botstatus: str,
+            multithread: bool = False,
+            sandbox: bool = False,
+            initbalance: int = 10,
+            opentrades: int = 5,
 
             # Monitoring
-            chainlistener: str = "logs",            # In use
+            chainlistener: str = "logs",
 
             # Filters
-            matchstring: str | None = None,         # In use
-            matchaddress: str | None = None,        # In use
-            noshorting: bool = False,               # In use
-            filteroff: bool = False,                # In use
+            matchstring: str | None = None,
+            matchaddress: str | None = None,
+            noshorting: bool = False,
+            filteroff: bool = False,
 
             # Timing
-            tokenidleinit: int = 15,                # In use
-            tokenidleshort: int = 15,               # In use
-            tokenidlenew: int = 15,                 # In use
-            tokenminage: int | float = 0.001,       # Not used
-            tokenmaxage: int | float = 0.001,       # In use
-            tokentimeout: int = 30,                 # In use
+            tokenidleinit: int = 15,
+            tokenidleshort: int = 15,
+            tokenidlenew: int = 15,
+            tokenminage: int | float = 0.001,
+            tokenmaxage: int | float = 0.001,
+            tokentimeout: int = 30,
 
             # Timing
-            buyamount: float = 0.0,                 # In use
-            buyslippage: float = 0.0,               # In use
-            sellslippage: float = 0.0,              # In use
-            fastmode: bool = False,                 # In use
-            fasttokens: int = 15,                   # In use
-            stoploss: float = 0.0,                  # In use
-            takeprofit: float = 0.0,                # In use
-            trailprofit: bool = False,              # In use
-            trailone: float = 0.0,                  # In use
-            trailtwo: float = 0.0,                  # In use
-            trailthree: float = 0.0,                # In use
-            trailfour: float = 0.0,                 # In use
-            trailfive: float = 0.0,                 # In use
-            tradetimeout: int = 900,                # In use
+            buyamount: float = 0.0,
+            buyslippage: float = 0.0,
+            sellslippage: float = 0.0,
+            fastmode: bool = False,
+            fasttokens: int = 15,
+            stoploss: float = 0.0,
+            takeprofit: float = 0.0,
+            trailprofit: bool = False,
+            trailone: float = 0.0,
+            trailtwo: float = 0.0,
+            trailthree: float = 0.0,
+            trailfour: float = 0.0,
+            trailfive: float = 0.0,
+            tradetimeout: int = 900,
 
             # Priority
-            priodynamic: bool = False,              # In use
-            priofixed: bool = True,                 # In use
-            priolamports: int = 200_000,            # In use
-            prioextrafee: float = 0.0,              # In use
-            priohardcap: int = 200_000,             # In use
+            priodynamic: bool = False,
+            priofixed: bool = True,
+            priolamports: int = 200_000,
+            prioextrafee: float = 0.0,
+            priohardcap: int = 200_000,
 
             # Retries
-            maxattempts: int = 3,                   # In use
+            maxattempts: int = 3,
 
             # Wipe
-            cleanall: str = "disabled",             # In use
-            cleanburn: bool = False,                # In use
-            cleanrate: bool = False,                # In use
+            cleanall: str = "disabled",
+            cleanburn: bool = False,
+            cleanrate: bool = False,
 
             # Rules
-            minmarketcap: float = 0.0,              # Not used
-            maxmarketcap: float = 0.0,              # Not used
-            minmarketvol: float = 0.0,              # Not used
-            maxmarketvol: float = 0.0,              # Not used
-            minholdowner: float = 0.0,              # Not used
-            maxholdowner: float = 0.0,              # Not used
-            topholders: float = 0.0,                # Not used
-            minholders: float = 0.0,                # Not used
-            maxholders: float = 0.0,                # Not used
-            holderscheck: bool = False,             # Not used
-            holdersbalance: float = 0.0,            # Not used
-            minliquidity: int = 3,                  # Not used
-            maxliquidity: int = 3,                  # Not used
+            minmarketcap: float = 0.0,
+            maxmarketcap: float = 0.0,
+            minmarketvol: float = 0.0,
+            maxmarketvol: float = 0.0,
+            minholdowner: float = 0.0,
+            maxholdowner: float = 0.0,
+            topholders: float = 0.0,
+            minholders: float = 0.0,
+            maxholders: float = 0.0,
+            holderscheck: bool = False,
+            holdersbalance: float = 0.0,
+            minliquidity: int = 3,
+            maxliquidity: int = 3,
         ):
         """ Initializer description """
+        # Node
+        self.apiendpoint = apiendpoint              # Not Used
+
         # Wallet
         self.wallet = Wallet(privatekey)
 
@@ -146,6 +148,7 @@ class PumpAgent:
         self.tokenidleinit = tokenidleinit
         self.tokenidleshort = tokenidleshort
         self.tokenidlenew = tokenidlenew
+        self.tokenminage = tokenminage              # Not used
         self.tokenmaxage = tokenmaxage
         self.tokentimeout = tokentimeout
 
@@ -210,13 +213,29 @@ class PumpAgent:
         self.tokenprocessing: set[str] = set()
         self.tokentimestamps: dict[str, float] = {}
 
+        # Rules
+        self.maxliquidity = maxliquidity            # Not used
+        self.minliquidity = minliquidity            # Not used
+        self.holdersbalance = holdersbalance        # Not used
+        self.holderscheck = holderscheck            # Not used
+        self.maxholders = maxholders                # Not used
+        self.minholders = minholders                # Not used
+        self.topholders = topholders                # Not used
+        self.maxholdowner = maxholdowner            # Not used
+        self.minholdowner = minholdowner            # Not used
+        self.maxmarketvol = maxmarketvol            # Not used
+        self.minmarketvol = minmarketvol            # Not used
+        self.maxmarketcap = maxmarketcap            # Not used
+        self.minmarketcap = minmarketcap            # Not used
+
     # Function 'StoreTrade'
-    def StoreTrade(self, action: str, tokendata: TokenInfo, price: float, amount: float, tx_hash: str | None) -> None:
+    @staticmethod
+    def StoreTrade(action: str, tokendata: TokenInfo, price: float, amount: float, tx_hash: str | None) -> None:
         """ Function description """
         try:
             os.makedirs("trades", exist_ok=True)
             logdata = {
-                "timestamp": datetime.utcnow().isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
                 "action": action,
                 "token": str(tokendata.mint),
                 "symbol": tokendata.symbol,
@@ -234,26 +253,32 @@ class PumpAgent:
     async def WaitForToken(self) -> TokenInfo | None:
         """ Function description """
         tokenfound = asyncio.Event()
-        fetchtoken = None
+        fetchtoken: TokenInfo | None = None
 
         # Function 'TokenCallback'
         async def TokenCallback(token: TokenInfo) -> None:
             """ Function description """
             nonlocal fetchtoken
-            token_key = str(token.mint)
+            tokenkey = str(token.mint)
 
-            if token_key not in self.tokenprocessing:
-                self.tokentimestamps[token_key] = monotonic()
+            if tokenkey not in self.tokenprocessing:
+                self.tokentimestamps[tokenkey] = monotonic()
                 fetchtoken = token
-                self.tokenprocessing.add(token_key)
+                self.tokenprocessing.add(tokenkey)
                 tokenfound.set()
 
         listenertask = asyncio.create_task(self.tokenlistener.listen_for_tokens(TokenCallback, self.matchstring, self.matchaddress))
         try:
             logger.info(f"Waiting for a suitable token (timeout: {self.tokentimeout}s)...")
             await asyncio.wait_for(tokenfound.wait(), timeout=self.tokentimeout)
-            logger.info(f"Found token: {fetchtoken.symbol} ({fetchtoken.mint})")
-            return fetchtoken
+
+            if fetchtoken is not None:
+                logger.info(f"Found token: {fetchtoken.symbol} ({fetchtoken.mint})")
+                return fetchtoken
+            else:
+                logger.warning("Token event was set, but no token was retrieved.")
+                return None
+
         except TimeoutError:
             logger.info(f"Timed out after waiting {self.tokentimeout}s for a token")
             return None
@@ -281,7 +306,8 @@ class PumpAgent:
             if sellresult.success:
                 logger.info(f"Successfully sold {tokendata.symbol}")
                 self.StoreTrade("sell", tokendata, sellresult.price, sellresult.amount, sellresult.tx_signature)
-                await handle_cleanup_after_sell(self.solanaclient, self.wallet, tokendata.mint, self.priorityorderfee, self.cleanall, self.cleanrate, self.cleanburn)
+                handler = CleanupHandler(self.solanaclient, self.wallet, self.priorityorderfee, self.cleanall, self.cleanrate, self.cleanburn)
+                await handler.handle_cleanup_after_sell(tokendata.mint)
             else:
                 logger.error(f"Failed to sell {tokendata.symbol}: {sellresult.error_message}")
         else:
@@ -290,7 +316,9 @@ class PumpAgent:
     # Function 'HandleFailedBuy'
     async def HandleFailedBuy(self, tokendata: TokenInfo, buyresult: TradeResult) -> None:
         """ Function description """
-        await handle_cleanup_after_failure(self.solanaclient, self.wallet, tokendata.mint, self.priorityorderfee, self.cleanall, self.cleanrate, self.cleanburn)
+        logger.error(f"Failed to buy {tokendata.symbol}: {buyresult.error_message}")
+        handler = CleanupHandler(self.solanaclient, self.wallet, self.priorityorderfee, self.cleanall, self.cleanrate, self.cleanburn)
+        await handler.handle_cleanup_after_failure(tokendata.mint)
 
     # Function 'CleanupResources'
     async def CleanupResources(self) -> None:
@@ -298,15 +326,8 @@ class PumpAgent:
         if self.tokenmints:
             try:
                 logger.info(f"Cleaning up {len(self.tokenmints)} traded token(s)...")
-                await handle_cleanup_post_session(
-                    self.solanaclient,
-                    self.wallet,
-                    list(self.tokenmints),
-                    self.priorityorderfee,
-                    self.cleanall,
-                    self.cleanrate,
-                    self.cleanburn
-                )
+                handler = CleanupHandler(self.solanaclient, self.wallet, self.priorityorderfee, self.cleanall, self.cleanrate, self.cleanburn)
+                await handler.handle_cleanup_post_session(list(self.tokenmints))
             except Exception as e:
                 logger.error(f"Error during cleanup: {e!s}")
 

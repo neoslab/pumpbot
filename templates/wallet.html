@@ -27,27 +27,27 @@
                                         {% endif %}
                                     {% endwith %}
                                     <div class="mb-3">
-                                        {{form.pubadd.label(class="form-label")}}
-                                        {{form.pubadd(class="form-control", placeholder="Insert public address", autocomplete="off")}}
-                                        {% if form.pubadd.description %}
+                                        {{form.publicaddr.label(class="form-label")}}
+                                        {{form.publicaddr(class="form-control", placeholder="Insert public address", autocomplete="off")}}
+                                        {% if form.publicaddr.description %}
                                             <div class="text-muted mt-1 ms-1">
-                                                {{form.pubadd.description}}
+                                                {{form.publicaddr.description}}
                                             </div>
                                         {% endif %}
-                                        {% if form.pubadd.errors %}
-                                            <div class="text-danger small mt-1">{{form.pubadd.errors[0]}}</div>
+                                        {% if form.publicaddr.errors %}
+                                            <div class="text-danger small mt-1">{{form.publicaddr.errors[0]}}</div>
                                         {% endif %}
                                     </div>
                                     <div class="mb-3">
-                                        {{form.prikey.label(class="form-label")}}
-                                        {{form.prikey(class="form-control", placeholder="Insert private key", autocomplete="off")}}
-                                        {% if form.prikey.description %}
+                                        {{form.privatekey.label(class="form-label")}}
+                                        {{form.privatekey(class="form-control", placeholder="Insert private key", autocomplete="off")}}
+                                        {% if form.privatekey.description %}
                                             <div class="text-muted mt-1 ms-1">
-                                                {{form.prikey.description}}
+                                                {{form.privatekey.description}}
                                             </div>
                                         {% endif %}
-                                        {% if form.prikey.errors %}
-                                            <div class="text-danger small mt-1">{{form.prikey.errors[0]}}</div>
+                                        {% if form.privatekey.errors %}
+                                            <div class="text-danger small mt-1">{{form.privatekey.errors[0]}}</div>
                                         {% endif %}
                                     </div>
                                     <hr class="mt-4 mb-4">

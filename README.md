@@ -83,7 +83,7 @@ nano config/user.yaml
 ## Launch the bot
 
 ```bash
-nohup python main.py > output 2>&1 &
+nohup python main.py > output.log 2>&1 &
 ```
 
 * * *

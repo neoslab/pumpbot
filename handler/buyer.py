@@ -31,50 +31,11 @@ EXPECTED_DISCRIMINATOR: Final[bytes] = struct.pack("<Q", 16927863322537952870)
 
 # Class 'TokenBuyer'
 class TokenBuyer(Trader):
-    """
-    This class handles the execution of token purchases on Pump.fun using bonding curve mechanics.
-    It calculates the expected token price, determines the optimal amount of tokens to buy based
-    on slippage and capital constraints, builds the transaction with all required accounts and
-    instructions, and submits it to the Solana blockchain. It supports both fast fixed-amount mode
-    and curve-based pricing. Upon execution, it returns a `TradeResult` containing the outcome.
-
-    Parameters:
-    - client (SolanaClient): An initialized RPC client for network interaction.
-    - wallet (Wallet): A wallet instance used to sign and submit the transaction.
-    - curve_manager (BondingCurveHandler): Used to fetch and calculate dynamic pricing from the bonding curve.
-    - priority_fee_manager (PriorityFeeHandler): Responsible for calculating transaction priority fees.
-    - amount (float): Amount in SOL to spend on purchasing the token.
-    - slippage (float): Maximum allowable slippage when buying the token.
-    - max_retries (int): Maximum retries allowed for transaction submission.
-    - extreme_fast_token_amount (int): If in fast mode, number of tokens to assume for fixed pricing.
-    - extreme_fast_mode (bool): When enabled, bypasses curve reading for immediate pricing logic.
-
-    Returns:
-    - None
-    """
+    """ Class description """
 
     # Class initialization
     def __init__(self, client: SolanaClient, wallet: Wallet, curve_manager: BondingCurveHandler, priority_fee_manager: PriorityFeeHandler, amount: float, slippage: float = 0.01, max_retries: int = 5, extreme_fast_token_amount: int = 0, extreme_fast_mode: bool = False):
-        """
-        Initializes the TokenBuyer instance with required dependencies and trading parameters.
-        It prepares the environment to execute buy operations on Pump.fun tokens using either
-        a price-estimating bonding curve or fast mode fallback with a predefined token quantity.
-        This setup allows flexible and fast trade execution while maintaining fee and retry control.
-
-        Parameters:
-        - client (SolanaClient): Client interface to interact with the Solana RPC.
-        - wallet (Wallet): The trading wallet used to sign and submit transactions.
-        - curve_manager (BondingCurveHandler): Provides bonding curve pricing support.
-        - priority_fee_manager (PriorityFeeHandler): Priority fee calculator.
-        - amount (float): Capital in SOL used to perform the purchase.
-        - slippage (float): Maximum allowed slippage tolerance (default: 0.01).
-        - max_retries (int): Retry count for transaction failures.
-        - extreme_fast_token_amount (int): Token quantity to simulate in fast mode.
-        - extreme_fast_mode (bool): Skips pricing logic and trades with fixed assumptions.
-
-        Returns:
-        - None
-        """
+        """ Initializer description """
         self.client = client
         self.wallet = wallet
         self.curve_manager = curve_manager
@@ -87,20 +48,7 @@ class TokenBuyer(Trader):
 
     # Function 'execute'
     async def execute(self, token_info: TokenInfo, *args, **kwargs) -> TradeResult:
-        """
-        Executes the purchase of a specified token based on configuration. If extreme fast mode is
-        enabled, a fixed token quantity is used to estimate the price. Otherwise, the bonding curve
-        is consulted to calculate the current token price. The function constructs a buy transaction
-        using the Pump.fun protocol and submits it with the appropriate fee and retries. Confirmation
-        is awaited before returning a structured `TradeResult`.
-
-        Parameters:
-        - token_info (TokenInfo): Metadata and program references for the token to buy.
-        - *args, **kwargs: Reserved for compatibility with abstract `Trader.execute`.
-
-        Returns:
-        - TradeResult: Outcome of the trade, including success status, transaction signature, price, and amount.
-        """
+        """ Function description """
         try:
             amount_lamports = int(self.amount * LAMPORTS_PER_SOL)
 
@@ -131,22 +79,7 @@ class TokenBuyer(Trader):
 
     # Function '_send_buy_transaction'
     async def _send_buy_transaction(self, token_info: TokenInfo, associated_token_account: Pubkey, token_amount: float, max_amount_lamports: int) -> str:
-        """
-        Constructs and submits a buy transaction for a given token on Pump.fun. This includes creating
-        the associated token account if needed (idempotent), preparing account metas for all required
-        programs and accounts, and encoding the buy instruction with amount and price constraints.
-        The function uses the priority fee manager and retries the transaction if necessary. Upon success,
-        returns the Solana transaction signature.
-
-        Parameters:
-        - token_info (TokenInfo): Token metadata and address structure.
-        - associated_token_account (Pubkey): Precomputed ATA for receiving tokens.
-        - token_amount (float): Number of tokens to purchase.
-        - max_amount_lamports (int): Maximum lamports allowed to spend including slippage.
-
-        Returns:
-        - str: Solana transaction signature of the successful submission.
-        """
+        """ Function description """
         accounts = [
             AccountMeta(pubkey = PumpAddresses.GLOBAL, is_signer = False, is_writable=False),
             AccountMeta(pubkey = PumpAddresses.FEE, is_signer = False, is_writable=True),
