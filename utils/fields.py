@@ -24,12 +24,6 @@ class BotFields:
                     'type': 'text',
                     'description': 'A unique name to identify and reference this specific bot configuration.'
                 },
-                'multithread': {
-                    'label': 'Multithread',
-                    'type': 'select',
-                    'description': 'Enable concurrent execution to allow multiple bot components to run in parallel.',
-                    'options': ['True', 'False']
-                },
                 'sandbox': {
                     'label': 'Sandbox Mode',
                     'type': 'select',
@@ -42,7 +36,7 @@ class BotFields:
                     'description': 'Starting virtual balance in SOL for the bot when running in sandbox mode.'
                 },
                 'opentrades': {
-                    'label': 'Max. Open Trades',
+                    'label': 'Open Trades',
                     'type': 'text',
                     'description': 'Maximum number of simultaneous trades that can be open at any given time. Set to 0 for unlimited.'
                 }
@@ -78,10 +72,10 @@ class BotFields:
                     'description': 'If enabled, disables shorting and allows only buy trades.',
                     'options': ['True', 'False']
                 },
-                'filteroff': {
-                    'label': 'Filter Off',
+                'nostopping': {
+                    'label': 'No Stopping',
                     'type': 'select',
-                    'description': 'Disable all token filters and trade any new token detected.',
+                    'description': 'When enabled, the bot continuously executes token trades based on real-time market signals.',
                     'options': ['True', 'False']
                 }
             },
@@ -145,12 +139,12 @@ class BotFields:
                     'description': 'Number of tokens to buy when fast mode is enabled.'
                 },
                 'stoploss': {
-                    'label': 'Stoploss Percentage',
+                    'label': 'Stop Loss',
                     'type': 'text',
                     'description': 'Loss threshold in percentage. The bot will sell if the price drops by this amount.'
                 },
                 'takeprofit': {
-                    'label': 'Take Profit Percentage',
+                    'label': 'Take Profit',
                     'type': 'text',
                     'description': 'Profit threshold in percentage. The bot will sell if the price increases by this amount.'
                 },
@@ -185,8 +179,8 @@ class BotFields:
                     'type': 'text',
                     'description': 'The fifth trailing profit level the bot must secure, expressed as a percentage.'
                 },
-                'swaptimeout': {
-                    'label': 'Swap Timeout',
+                'countdown': {
+                    'label': 'Trade Countdown',
                     'type': 'text',
                     'description': 'Maximum duration (in seconds) a trade can stay open without reaching stop loss or take profit.'
                 }

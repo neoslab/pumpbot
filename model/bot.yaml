@@ -11,10 +11,6 @@ main:
     # A unique name to identify and reference this specific bot configuration.
     name: "bot-trader-1"
 
-    # Multithread
-    # Enable concurrent execution to allow multiple bot components to run in parallel.
-    multithread: False
-
     # Sandbox Mode
     # When enabled, activates paper trading mode (simulated trades with no real SOL).
     sandbox: True
@@ -25,7 +21,7 @@ main:
 
     # Max. Open Trades
     # Maximum number of simultaneous trades that can be open at any given time. Set to 0 for unlimited.
-    opentrades: 5
+    maxopentrades: 5
 
 # Monitoring for token selection
 monitoring:
@@ -47,9 +43,9 @@ filters:
     # If enabled, disables shorting and allows only buy trades.
     noshorting: False
 
-    # Filter Off
-    # Disable all token filters and trade any new token detected.
-    filteroff: False
+    # No Stopping
+    # When enabled, the bot continuously executes token trades based on real-time market signals.
+    nostopping: False
 
 # Token timing configuration
 timing:
@@ -75,7 +71,7 @@ timing:
 
     # Token Timeout
     # Timeout (in seconds) to wait for token metadata or price response before skipping.
-    ordertimeout: 30
+    tokentimeout: 30
 
 # Trading parameters
 trade:
@@ -99,11 +95,11 @@ trade:
     # Number of tokens to buy when fast mode is enabled.
     fasttokens: 20
 
-    # Stoploss Percentage
+    # Stop Loss
     # Loss threshold in percentage. The bot will sell if the price drops by this amount.
     stoploss: 20
 
-    # Take Profit Percentage
+    # Take Profit
     # Profit threshold in percentage. The bot will sell if the price increases by this amount.
     takeprofit: 50
 
@@ -131,9 +127,9 @@ trade:
     # The first fifth profit level the bot must secure, expressed as a percentage.
     trailfive: 50
 
-    # Trade Timeout
+    # Trade Countdown
     # Maximum duration (in seconds) a trade can stay open without reaching stop loss or take profit.
-    tradetimeout: 900
+    countdown: 900
 
 # Priority fee configuration
 priority:

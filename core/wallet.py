@@ -16,6 +16,17 @@ class Wallet:
         """ Initializer description """
         self._private_key = private_key
         self._keypair = self._load_keypair(private_key)
+        if self._keypair is None:
+            print("Invalid private key provided.")
+            self.validkey = False
+        else:
+            self.validkey = True
+
+    # Function 'pubkey'
+    @property
+    def validprikey(self):
+        """ Function description """
+        return self.validkey
 
     # Function 'pubkey'
     @property
@@ -36,7 +47,10 @@ class Wallet:
 
     # Function '_load_keypair'
     @staticmethod
-    def _load_keypair(private_key: str) -> Keypair:
+    def _load_keypair(private_key: str) -> Keypair | None:
         """ Function description """
-        private_key_bytes = base58.b58decode(private_key)
-        return Keypair.from_bytes(private_key_bytes)
+        try:
+            private_key_bytes = base58.b58decode(private_key)
+            return Keypair.from_bytes(private_key_bytes)
+        except (ValueError, TypeError, AssertionError):
+            return None

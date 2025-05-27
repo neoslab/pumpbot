@@ -21,6 +21,7 @@ from handler.base import TradeResult
 from handler.buyer import TokenBuyer
 from handler.cleanup import CleanupHandler
 from handler.seller import TokenSeller
+from screeners.pumpfun import PumpFunScreener
 from monitoring.listeners import BlockListener
 from monitoring.listeners import LogsListener
 
@@ -37,17 +38,14 @@ class PumpAgent:
             # Node
             rpcendpoint: str,
             wssendpoint: str,
-            apiendpoint: str,
 
             # Wallet
             privatekey: str,
 
             # Main
-            botstatus: str,
-            multithread: bool = False,
             sandbox: bool = False,
             initbalance: int = 10,
-            opentrades: int = 5,
+            maxopentrades: int = 5,
 
             # Monitoring
             chainlistener: str = "logs",
@@ -56,7 +54,7 @@ class PumpAgent:
             matchstring: str | None = None,
             matchaddress: str | None = None,
             noshorting: bool = False,
-            filteroff: bool = False,
+            nostopping: bool = False,
 
             # Timing
             tokenidleinit: int = 15,
@@ -80,7 +78,7 @@ class PumpAgent:
             trailthree: float = 0.0,
             trailfour: float = 0.0,
             trailfive: float = 0.0,
-            tradetimeout: int = 900,
+            countdown: int = 900,
 
             # Priority
             priodynamic: bool = False,
@@ -113,21 +111,19 @@ class PumpAgent:
             maxliquidity: int = 3,
         ):
         """ Initializer description """
-        # Node
-        self.apiendpoint = apiendpoint              # Not Used
-
-        # Wallet
-        self.wallet = Wallet(privatekey)
-
         # Client
         self.solanaclient = SolanaClient(rpcendpoint)
 
         # Main
-        self.botstatus = botstatus
-        self.multithread = multithread
         self.sandbox = sandbox
         self.initbalance = initbalance
-        self.opentrades = opentrades
+        self.maxopentrades = maxopentrades
+
+        # Wallet
+        for privkey in privatekey:
+            self.wallet = Wallet(privkey)
+            if not self.wallet.validkey:
+                self.sandbox = True
 
         # Monitoring
         chainlistener = chainlistener.lower()
@@ -142,14 +138,14 @@ class PumpAgent:
         self.matchstring = matchstring
         self.matchaddress = matchaddress
         self.noshorting = noshorting
-        self.filteroff = filteroff
+        self.nostopping = nostopping
 
         # Timing
         self.tokenidleinit = tokenidleinit
         self.tokenidleshort = tokenidleshort
         self.tokenidlenew = tokenidlenew
-        self.tokenminage = tokenminage              # Not used
-        self.tokenmaxage = tokenmaxage
+        self.tokenminage = tokenminage
+        self.tokenmaxage = tokenmaxage              # Not used
         self.tokentimeout = tokentimeout
 
         # Trading
@@ -158,15 +154,15 @@ class PumpAgent:
         self.sellslippage = sellslippage
         self.fastmode = fastmode
         self.fasttokens = fasttokens
-        self.stoploss = stoploss
-        self.takeprofit = takeprofit
-        self.trailprofit = trailprofit
-        self.trailone = trailone
-        self.trailtwo = trailtwo
-        self.trailthree = trailthree
-        self.trailfour = trailfour
-        self.trailfive = trailfive
-        self.tradetimeout = tradetimeout
+        self.stoploss = stoploss                    # Not used
+        self.takeprofit = takeprofit                # Not used
+        self.trailprofit = trailprofit              # Not used
+        self.trailone = trailone                    # Not used
+        self.trailtwo = trailtwo                    # Not used
+        self.trailthree = trailthree                # Not used
+        self.trailfour = trailfour                  # Not used
+        self.trailfive = trailfive                  # Not used
+        self.countdown = countdown                  # Not used
 
         # Curve Handler
         self.curvehandler = BondingCurveHandler(self.solanaclient)
@@ -182,25 +178,27 @@ class PumpAgent:
         )
 
         # Buyer
-        self.buyer = TokenBuyer(
-            self.solanaclient,
-            self.wallet,
-            self.curvehandler,
-            self.priorityorderfee,
-            buyamount,
-            buyslippage,
-            maxattempts,
-            fasttokens,
-            fastmode)
+        if self.sandbox is False:
+            self.buyer = TokenBuyer(
+                self.solanaclient,
+                self.wallet,
+                self.curvehandler,
+                self.priorityorderfee,
+                buyamount,
+                buyslippage,
+                maxattempts,
+                fasttokens,
+                fastmode)
 
         # Seller
-        self.seller = TokenSeller(
-            self.solanaclient,
-            self.wallet,
-            self.curvehandler,
-            self.priorityorderfee,
-            sellslippage,
-            maxattempts)
+        if self.sandbox is False:
+            self.seller = TokenSeller(
+                self.solanaclient,
+                self.wallet,
+                self.curvehandler,
+                self.priorityorderfee,
+                sellslippage,
+                maxattempts)
 
         # Cleanup parameters
         self.cleanall = cleanall
@@ -348,6 +346,8 @@ class PumpAgent:
         self.tokentimestamps[tokenkey] = monotonic()
         await self.tokenqueue.put(tokendata)
         logger.info(f"Queued new token: {tokendata.symbol} ({tokendata.mint})")
+        screener = PumpFunScreener()
+        screener.tokenquery(str(tokendata.mint))
 
     # Function 'ProcessQueue'
     async def ProcessQueue(self) -> None:
@@ -366,7 +366,8 @@ class PumpAgent:
 
                 self.tokenprocessing.add(tokenkey)
                 logger.info(f"Processing fresh token: {tokendata.symbol} (age: {token_age:.1f}s)")
-                await self.HandleTokenOrder(tokendata)
+                if self.sandbox is False:
+                    await self.HandleTokenOrder(tokendata)
 
             except asyncio.CancelledError:
                 logger.info("Token queue processor was cancelled")
@@ -392,7 +393,7 @@ class PumpAgent:
             else:
                 await self.HandleFailedBuy(tokendata, buyresult)
 
-            if self.filteroff:
+            if self.nostopping:
                 logger.info(f"Filter-Off enabled. Waiting {self.tokenidlenew} seconds before looking for next token...")
                 await asyncio.sleep(self.tokenidlenew)
 
@@ -406,7 +407,7 @@ class PumpAgent:
         logger.info(f"Match filter: {self.matchstring if self.matchstring else 'None'}")
         logger.info(f"Creator filter: {self.matchaddress if self.matchaddress else 'None'}")
         logger.info(f"No-Shorting: {self.noshorting}")
-        logger.info(f"Filter-Off: {self.filteroff}")
+        logger.info(f"Filter-Off: {self.nostopping}")
         logger.info(f"Max token age: {self.tokenmaxage} seconds")
 
         try:
@@ -416,12 +417,13 @@ class PumpAgent:
             logger.warning(f"RPC warm-up failed: {e!s}")
 
         try:
-            if not self.filteroff:
+            if not self.nostopping:
                 logger.info("Running in single token mode - will process one token and exit")
                 tokendata = await self.WaitForToken()
                 if tokendata:
-                    await self.HandleTokenOrder(tokendata)
-                    logger.info("Finished processing single token. Exiting...")
+                    if self.sandbox is False:
+                        await self.HandleTokenOrder(tokendata)
+                        logger.info("Finished processing single token. Exiting...")
                 else:
                     logger.info(f"No suitable token found within timeout period ({self.tokentimeout}s). Exiting...")
             else:

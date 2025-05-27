@@ -143,7 +143,7 @@ class PumpProcessor:
     def _load_idl() -> dict[str, Any]:
         """ Function description """
         try:
-            with open("dex/pumpswap.json") as f:
+            with open("global/pumpfun.json") as f:
                 return json.load(f)
         except Exception as e:
             logger.error(f"Failed to load IDL: {str(e)}")

@@ -1,7 +1,6 @@
 # Import libraries
 import asyncio
 import logging
-import multiprocessing
 import time
 from pathlib import Path
 
@@ -16,14 +15,17 @@ set_event_loop()
 class PumpBotManager:
     """Manager to load and execute Pump trading bots."""
 
+    # Class initialization
     def __init__(self, botspath: str = "bots"):
+        """ Initializer description """
         self.botsdir = Path(botspath)
         self.processes = []
         self.skipbots = 0
 
+    # Function 'startbot'
     @staticmethod
     async def startbot(confpath: str):
-        """Load config and start a PumpAgent asynchronously."""
+        """ Function description """
         nodeinfo = ConfLoader.endpoint()
         loadwallet = ConfLoader.wallet()
 
@@ -37,15 +39,12 @@ class PumpBotManager:
             # General
             rpcendpoint = nodeinfo["rpc"],
             wssendpoint = nodeinfo["wss"],
-            apiendpoint = nodeinfo["api"],
             privatekey = loadwallet["privatekey"],
 
             # Main
-            botstatus = botconf["main"]["status"],
-            multithread = botconf["main"]["multithread"],
             sandbox = botconf["main"]["sandbox"],
             initbalance = botconf["main"]["initbalance"],
-            opentrades = botconf["main"]["opentrades"],
+            maxopentrades = botconf["main"]["maxopentrades"],
 
             # Monitoring
             chainlistener = botconf["monitoring"]["chain"],
@@ -54,7 +53,7 @@ class PumpBotManager:
             matchstring = botconf["filters"]["matchstring"],
             matchaddress = botconf["filters"]["matchaddress"],
             noshorting = botconf["filters"]["noshorting"],
-            filteroff = botconf["filters"]["filteroff"],
+            nostopping = botconf["filters"]["nostopping"],
 
             # Timing
             tokenidleinit = botconf["timing"]["tokenidleinit"],
@@ -73,7 +72,7 @@ class PumpBotManager:
             stoploss = botconf["trade"]["stoploss"],
             takeprofit = botconf["trade"]["takeprofit"],
             trailprofit = botconf["trade"]["trailprofit"],
-            tradetimeout = botconf["trade"]["swaptimeout"],
+            countdown = botconf["trade"]["countdown"],
 
             # Priorities
             priodynamic = botconf["priority"]["dynamic"],
@@ -108,12 +107,9 @@ class PumpBotManager:
 
         await agent.AgentStart()
 
-    def botprocess(self, confpath: str):
-        """Run a bot inside its own process."""
-        asyncio.run(self.startbot(confpath))
-
+    # Function 'execbots'
     def execbots(self):
-        """Scan config directory and launch bots."""
+        """ Function description """
         if not self.botsdir.exists():
             logging.warning(f"Bot directory '{self.botsdir}' not found")
             return False
@@ -137,18 +133,8 @@ class PumpBotManager:
                     continue
 
                 trademode = "sandbox" if botmain.get("sandbox", False) else "market"
-                if botmain.get("multithread", False):
-                    logging.info(f"Starting bot '{botname}' in {trademode} mode and multithread process")
-                    process = multiprocessing.Process(
-                        target=self.botprocess,
-                        args=(str(botfile),),
-                        name=f"bot-{botname}"
-                    )
-                    process.start()
-                    self.processes.append(process)
-                else:
-                    logging.info(f"Starting bot '{botname}' in {trademode} mode and main process")
-                    asyncio.run(self.startbot(str(botfile)))
+                logging.info(f"Starting bot '{botname}' in {trademode} mode")
+                asyncio.run(self.startbot(str(botfile)))
 
             except Exception as e:
                 logging.exception(f"Failed to start bot from {botfile}: {e}")
@@ -162,8 +148,9 @@ class PumpBotManager:
 
         return True
 
+    # Function 'run'
     def run(self):
-        """Run the manager loop forever."""
+        """ Function description """
         LogFormat.show()
         while True:
             try:
@@ -193,3 +180,5 @@ def main():
 if __name__ == '__main__':
     """ Function description """
     main()
+
+

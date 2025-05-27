@@ -4,8 +4,8 @@
 - Package containing module 'spl' is not listed in the project requirements:7
 
 - handler/agent.py
-- Explicit return statement expected:290
-- Explicit return statement expected:292
+- Explicit return statement expected:293
+- Explicit return statement expected:295
 
 - handler/buyer.py
 - Package containing module 'spl' is not listed in the project requirements:9

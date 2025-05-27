@@ -71,6 +71,13 @@ git clone https://github.com/neoslab/pumpbot
 cd $HOME/pumpbot
 python3 -m venv pumpbot
 source pumpbot/bin/activate
+```
+
+## Install PIP dependencies
+
+If you are using Linux, open the `requirements.txt` file and uncomment the line related to the `uvloop` package before running the command below.
+
+```bash
 python -m pip install -r requirements.txt
 ```
 
@@ -110,6 +117,22 @@ C:\<DIRECTORY\FULLPATH>\pumpbot\.venv\Scripts\python.exe C:\<DIRECTORY\FULLPATH>
 
 * * *
 
+## Endpoint Configuration
+
+**Solana Node**
+
+```
+https://api.mainnet-beta.solana.com
+wss://api.mainnet-beta.solana.com
+```
+
+**Helius Node**
+
+```
+https://mainnet.helius-rpc.com/?api-key=<HELIUS-API-KEY>
+wss://mainnet.helius-rpc.com/?api-key=<HELIUS-API-KEY>
+```
+
 ## Bot Configuration
 
 The trading bots can be fully configured through individual YAML files located in the bots/ folder. Each file defines a separate bot instance with its own strategy, settings, and behavior. You can add as many bots as you want by creating new YAML files in this folder.
@@ -122,15 +145,11 @@ The trading bots can be fully configured through individual YAML files located i
 main:
     # Bot Status
     # Enable or disable this bot instance entirely.
-    enabled: False
+    status: False
 
     # Bot Name
     # A unique name to identify and reference this specific bot configuration.
     name: "bot-trader-1"
-
-    # Multithreads
-    # Enable concurrent execution to allow multiple bot components to run in parallel.
-    multithreads: False
 
     # Sandbox Mode
     # When enabled, activates paper trading mode (simulated trades with no real SOL).
@@ -144,12 +163,14 @@ main:
     # Maximum number of simultaneous trades that can be open at any given time. Set to 0 for unlimited.
     maxopentrades: 5
 
-# Filters for token selection
-filters:
+# Monitoring for token selection
+monitoring:
     # Listener
     # Defines the event source to listen for token detection (e.g., new blocks or logs).
-    chainlistener: "logs"
+    chain: "logs"
 
+# Filters for token selection
+filters:
     # Match String
     # Only consider tokens whose name or symbol contains this substring.
     matchstring: Null
@@ -162,12 +183,24 @@ filters:
     # If enabled, disables shorting and allows only buy trades.
     noshorting: False
 
-    # Filter Off
-    # Disable all token filters and trade any new token detected.
-    filteroff: False
+    # No Stopping
+    # When enabled, the bot continuously executes token trades based on real-time market signals.
+    nostopping: False
 
 # Token timing configuration
 timing:
+    # Token Initialization
+    # Time to wait after a token is created before any trade can be considered.
+    tokenidleinit: 15
+
+    # Token Sell Period
+    # Cooldown period after a token has been sold before it becomes eligible for another buy.
+    tokenidleshort: 15
+
+    # Token New Detection
+    # Delay before scanning or acting on a newly detected token.
+    tokenidlenew: 15
+
     # Min. Token Age
     # Minimum token age (in seconds) to qualify for trading.
     tokenminage: 0.001
@@ -202,21 +235,41 @@ trade:
     # Number of tokens to buy when fast mode is enabled.
     fasttokens: 20
 
-    # Stoploss Percentage
+    # Stop Loss
     # Loss threshold in percentage. The bot will sell if the price drops by this amount.
     stoploss: 20
 
-    # Take Profit Percentage
+    # Take Profit
     # Profit threshold in percentage. The bot will sell if the price increases by this amount.
     takeprofit: 50
 
     # Trailing Profit
-    # Activate a trailing stop once the price has increased by this percentage.
-    trailing: 20
+    # Activate multilevel trailing profit once the price has increased by these level.
+    trailprofit: False
 
-    # Trade Timeout
+    # Trailing Level 1
+    # The first trailing profit level the bot must secure, expressed as a percentage.
+    trailone: 50
+
+    # Trailing Level 2
+    # The second trailing profit level the bot must secure, expressed as a percentage.
+    trailtwo: 50
+
+    # Trailing Level 3
+    # The third trailing profit level the bot must secure, expressed as a percentage.
+    trailthree: 50
+
+    # Trailing Level 4
+    # The fourth trailing profit level the bot must secure, expressed as a percentage.
+    trailfour: 50
+
+    # Trailing Level 5
+    # The first fifth profit level the bot must secure, expressed as a percentage.
+    trailfive: 50
+
+    # Trade Countdown
     # Maximum duration (in seconds) a trade can stay open without reaching stop loss or take profit.
-    timeout: 900
+    countdown: 900
 
 # Priority fee configuration
 priority:
@@ -247,22 +300,22 @@ retries:
     attempts: 1
 
 # Token and account management
-cleanup:
+wipe:
     # Cleanup Mode
     # Defines when cleanup actions (e.g., burning or closing accounts) should occur.
     # disabled   > no cleanup will occur.
     # fail       > only clean up if a buy transaction fails.
     # sell       > clean up after selling.
     # session    > clean up all empty accounts after a trading session ends.
-    mode: "session"
+    clean: "session"
 
     # Force Burn
     # If enabled, any remaining tokens will be forcefully burned after trading.
     burn: False
 
-    # Priority Fee
+    # Priority Rate
     # Use priority fees for cleanup-related transactions.
-    fee: False
+    rate: False
 
 # Rules
 rules:
@@ -295,16 +348,20 @@ rules:
     topholders: 20
 
     # Min. Holders
-    # Minimum number of unique token holders required for eligibility.
+    # Minimum number of holders required for a token to qualify.
     minholders: 10
 
     # Max. Holders
     # Maximum number of holders allowed for a token to qualify.
     maxholders: 20
 
-    # Check. Holders
-    # Enable check to verify that all holders have a minimum SOL balance.
-    checkholders: True
+    # Holders Check
+    # Enable to verify that all holders have a minimum SOL balance.
+    holderscheck: False
+
+    # Holders Balance
+    # Minimum balance required in each holder's account for the token to qualify.
+    holdersbalance: 0.1
 
     # Min. Liquidity Pool
     # Minimum liquidity (in USD) the token must have in its trading pool.

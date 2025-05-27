@@ -18,18 +18,6 @@
     display: none;
 }
 
-html[data-color-theme="light"] .readonlyfield 
-{
-    background-color: #f1f4f9 !important;
-    color: inherit;
-}
-
-html[data-color-theme="dark"] .readonlyfield 
-{
-    background-color: #202125 !important;
-    color: inherit;
-}
-
 /**
  * Toast
 */

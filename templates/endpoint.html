@@ -50,18 +50,6 @@
                                             <div class="text-danger small mt-1">{{form.wss.errors[0]}}</div>
                                         {% endif %}
                                     </div>
-                                    <div class="mb-3">
-                                        {{form.api.label(class="form-label")}}
-                                        {{form.api(class="form-control", placeholder="Insert API key (optional)", autocomplete="off")}}
-                                        {% if form.api.description %}
-                                            <div class="text-muted mt-1 ms-1">
-                                                {{form.api.description}}
-                                            </div>
-                                        {% endif %}
-                                        {% if form.api.errors %}
-                                            <div class="text-danger small mt-1">{{form.api.errors[0]}}</div>
-                                        {% endif %}
-                                    </div>
                                     <hr class="mt-4 mb-4">
                                     <div class="text-end">
                                         <button type="submit" class="btn btn-flat-info btn-labeled btn-labeled-start">

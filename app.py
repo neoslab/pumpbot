@@ -6,6 +6,7 @@ import uuid
 import yaml
 
 # Import packages
+from decimal import Decimal
 from functools import wraps
 from flask import Flask
 from flask import flash
@@ -16,13 +17,19 @@ from flask import request
 from flask import session
 from flask import url_for
 from flask_wtf import CSRFProtect
+from math import ceil
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
 
 # Import dependencies
+from handler.exchange import SolPrice
 from utils.fields import BotFields
 from utils.forms import BotForm
 from utils.forms import EndpointForm
 from utils.forms import LoginForm
 from utils.forms import WalletForm
+from utils.model import PumpBase
+from utils.model import PumpFunDB
 from utils.serialization import QuotedDumper
 
 
@@ -39,9 +46,48 @@ class PumpBotUI:
         self.csrf = CSRFProtect(self.app)
         self.botsdir = 'bots'
         self.userfile = 'config/user.yaml'
-        self.routes()
-        self.app.context_processor(self.injectglobals)
+
         os.makedirs(self.botsdir, exist_ok=True)
+        db_folder = os.path.join(basedir, "database")
+        os.makedirs(db_folder, exist_ok=True)
+        db_path = os.path.join(db_folder, "pumpfun.db")
+        db_url = f"sqlite:///{db_path}"
+        self.db_engine = create_engine(db_url)
+        PumpBase.metadata.create_all(self.db_engine)
+        self.DBSession = sessionmaker(bind=self.db_engine)
+        self.app.context_processor(self.injectglobals)
+        self.routes()
+        self.app.jinja_env.filters['safedatetime'] = self.safedatetime
+        self.app.jinja_env.filters['formatsuffix'] = self.formatsuffix
+
+    # Function 'formatsuffix'
+    @staticmethod
+    def formatsuffix(value):
+        """ Function description """
+        try:
+            num = float(value)
+            if num >= 1_000_000_000:
+                return f"{num / 1_000_000_000:.2f}B"
+            elif num >= 1_000_000:
+                return f"{num / 1_000_000:.2f}M"
+            elif num >= 1_000:
+                return f"{num / 1_000:.2f}K"
+            else:
+                return f"{num:.2f}"
+        except (TypeError, ValueError):
+            return "n/a"
+
+    # Function 'safedatetime'
+    @staticmethod
+    def safedatetime(ts):
+        """ Function description """
+        try:
+            ts = int(ts)
+            if ts <= 0 or ts > 2147483647:
+                return "n/a"
+            return datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
+        except (TypeError, ValueError):
+            return "n/a"
 
     # Function 'injectglobals'
     @staticmethod
@@ -168,13 +214,11 @@ class PumpBotUI:
             if request.method == 'GET':
                 form.rpc.data = filedata.get('rpc', '')
                 form.wss.data = filedata.get('wss', '')
-                form.api.data = filedata.get('api', '')
 
             if form.validate_on_submit():
                 data = {
                     'rpc': form.rpc.data.strip(),
-                    'wss': form.wss.data.strip(),
-                    'api': form.api.data.strip()
+                    'wss': form.wss.data.strip()
                 }
 
                 try:
@@ -254,7 +298,19 @@ class PumpBotUI:
         @self.loadsession
         def scanner():
             """ Function description """
-            return render_template('scanner.html', title='Scanner')
+            sessiondb = self.DBSession()
+
+            query = request.args.get('page', 1, type=int)
+            items = 20
+            count = sessiondb.query(PumpFunDB).count()
+            tokens = (sessiondb.query(PumpFunDB).order_by(PumpFunDB.created.desc()).offset((query - 1) * items).limit(items).all())
+
+            sessiondb.close()
+            solmarket = SolPrice.solvsusd()
+            sol2usd = Decimal(str(solmarket)) if solmarket is not None else None
+
+            totalpages = ceil(count / items)
+            return render_template('scanner.html', title='Scanner', tokens=tokens, solprice=sol2usd, query=query, totalpages=totalpages)
 
         # Function 'switch'
         @app.route('/switch', methods=['POST'])

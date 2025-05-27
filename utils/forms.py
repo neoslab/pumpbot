@@ -18,17 +18,13 @@ class EndpointForm(FlaskForm):
     """ Class description """
     rpc = StringField(
         'RPC Endpoint',
-        description='Solana RPC endpoint used for blockchain interactions (e.g., Solana, Helius, QuickNode)',
+        description='Solana RPC endpoint used for blockchain interactions (e.g., Solana or Helius)',
         validators=[DataRequired()]
     )
     wss = StringField(
         'WSS Endpoint',
-        description='Solana WSS endpoint used for blockchain interactions (e.g., Solana, Helius, QuickNode)',
+        description='Solana WSS endpoint used for blockchain interactions (e.g., Solana or Helius)',
         validators=[DataRequired()]
-    )
-    api = StringField(
-        'API Key',
-        description='API key if using Helius or QuickNode (optional)'
     )
     submit = SubmitField('Save Endpoint')
 

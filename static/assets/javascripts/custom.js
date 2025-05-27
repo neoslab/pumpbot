@@ -59,7 +59,6 @@ function toogleChangeFields()
 {
     const botstatus = $('[name="main.status"]').val();
     const sandbox = $('[name="main.sandbox"]').val();
-    const filteroff = $('[name="filters.filteroff"]').val();
     const fastmode = $('[name="trade.fastmode"]').val();
     const holderscheck = $('[name="rules.holderscheck"]').val();
     const trailprofit = $('[name="trade.trailprofit"]').val();
@@ -107,40 +106,6 @@ function toogleChangeFields()
         $('[name="trade.trailfour"]').closest('.mb-3').hide();
         $('[name="trade.trailfive"]').closest('.mb-3').hide();
     }
-
-    const readonlyFields = 
-    [
-        'filters.matchstring',
-        'filters.matchaddress',
-        'filters.noshorting',
-        'timing.tokenmaxage',
-        'rules.minmarketcap',
-        'rules.maxmarketcap',
-        'rules.minmarketvol',
-        'rules.maxmarketvol',
-        'rules.minholdowner',
-        'rules.maxholdowner',
-        'rules.topholders',
-        'rules.minholders',
-        'rules.maxholders',
-        'rules.holderscheck',
-        'rules.holdersbalance',
-        'rules.minliquidity',
-        'rules.maxliquidity'
-    ];
-
-    readonlyFields.forEach(field => 
-    {
-        const selector = `[name="${field}"]`;
-        if(filteroff === "True") 
-        {
-            $(selector).attr("readonly", true).addClass("readonlyfield").css("pointer-events", "none");
-        } 
-        else 
-        {
-            $(selector).removeAttr("readonly").removeClass("readonlyfield").css("pointer-events", "");
-        }
-    });
 }
 
 $(document).ready(function() 
@@ -159,5 +124,5 @@ $(document).ready(function()
         toogleChangeFields();
     });
 
-    $('[name="main.sandbox"], [name="filters.listener"], [name="filters.filteroff"], [name="trade.fastmode"], [name="trade.trailprofit"], [name="rules.holderscheck"]').on('change', toogleChangeFields);
+    $('[name="main.sandbox"], [name="filters.listener"], [name="trade.fastmode"], [name="trade.trailprofit"], [name="rules.holderscheck"]').on('change', toogleChangeFields);
 });
