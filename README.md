@@ -8,7 +8,7 @@ sudo apt -y remove && sudo apt -y autoremove
 sudo apt -y clean && sudo apt -y autoclean
 ```
 
-## Change the SSH port from 22 to 49622 and uncomment the line if commented
+## Change the SSH port from 22 to 49622
 
 ```bash
 sudo sed -i 's/^#\?Port 22/Port 49622/' /etc/ssh/sshd_config
@@ -90,7 +90,8 @@ nano config/user.yaml
 ## Launch the bot
 
 ```bash
-nohup python main.py > output.log 2>&1 &
+nohup python bot.py > output-bot.log 2>&1 &
+nohup python app.py > output-app.log 2>&1 &
 ```
 
 * * *
@@ -149,25 +150,29 @@ main:
 
     # Bot Name
     # A unique name to identify and reference this specific bot configuration.
-    name: "bot-trader-1"
+    botname: "bot-trader-1"
 
     # Sandbox Mode
     # When enabled, activates paper trading mode (simulated trades with no real SOL).
     sandbox: True
 
-    # Initial Balance
-    # Starting virtual balance in SOL for the bot when running in sandbox mode.
-    initbalance: 10
-
     # Max. Open Trades
     # Maximum number of simultaneous trades that can be open at any given time. Set to 0 for unlimited.
     maxopentrades: 5
+
+    # Initial Balance
+    # Starting virtual balance in SOL for the bot when running in sandbox mode.
+    initbalance: 10
 
 # Monitoring for token selection
 monitoring:
     # Listener
     # Defines the event source to listen for token detection (e.g., new blocks or logs).
     chain: "logs"
+
+    # Interval
+    # Defines the interval to wait in millseconds before to store the detected token into the database  (e.g. 60000 = 60 seconds).
+    interval: 0.001
 
 # Filters for token selection
 filters:
@@ -197,17 +202,17 @@ timing:
     # Cooldown period after a token has been sold before it becomes eligible for another buy.
     tokenidleshort: 15
 
-    # Token New Detection
+    # Token Fresh Detection
     # Delay before scanning or acting on a newly detected token.
-    tokenidlenew: 15
+    tokenidlefresh: 15
 
     # Min. Token Age
-    # Minimum token age (in seconds) to qualify for trading.
+    # Minimum token age (in milliseconds) required to qualify for trading (e.g. 60000 = 60 seconds).
     tokenminage: 0.001
 
     # Max. Token Age
-    # Maximum token age (in seconds) beyond which tokens will be ignored.
-    tokenmaxage: 0.001
+    # Maximum token age (in milliseconds) beyond which tokens will be ignored. (e.g. 60000 = 60 seconds).
+    tokenmaxage: 0.005
 
     # Token Timeout
     # Timeout (in seconds) to wait for token metadata or price response before skipping.
@@ -267,10 +272,6 @@ trade:
     # The first fifth profit level the bot must secure, expressed as a percentage.
     trailfive: 50
 
-    # Trade Countdown
-    # Maximum duration (in seconds) a trade can stay open without reaching stop loss or take profit.
-    countdown: 900
-
 # Priority fee configuration
 priority:
     # Dynamic Priority
@@ -320,19 +321,19 @@ wipe:
 # Rules
 rules:
     # Min. Market Cap
-    # Minimum market capitalization (USD) required for a token to be eligible.
+    # Minimum market capitalization (SOL) required for a token to be eligible.
     minmarketcap: 6000
 
     # Max. Market Cap
-    # Maximum market capitalization (USD) allowed for a token to qualify.
+    # Maximum market capitalization (SOL) allowed for a token to qualify.
     maxmarketcap: 10000
 
     # Min. Market Volume
-    # Minimum trading volume (USD) required for a token to be considered.
+    # Minimum trading volume (SOL) required for a token to be considered.
     minmarketvol: 6000
 
     # Max. Market Volume
-    # Maximum trading volume (USD) allowed for a token to qualify.
+    # Maximum trading volume (SOL) allowed for a token to qualify.
     maxmarketvol: 10000
 
     # Min. Owner Hold
@@ -364,11 +365,11 @@ rules:
     holdersbalance: 0.1
 
     # Min. Liquidity Pool
-    # Minimum liquidity (in USD) the token must have in its trading pool.
+    # Minimum liquidity (in SOL) the token must have in its trading pool.
     minliquidity: 4000
 
     # Max. Liquidity Pool
-    # Maximum liquidity (in USD) allowed for token eligibility.
+    # Maximum liquidity (in SOL) allowed for token eligibility.
     maxliquidity: 10000
 ```
 

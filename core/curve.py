@@ -1,111 +1,135 @@
-# Import libraries
+"""
+Bonding curve operations for pump.fun tokens.
+"""
 import logging
 import struct
-
-# Import packages
 from typing import Final
-from construct import Flag
-from construct import Int64ul
-from construct import Struct
+
+from construct import Flag, Int64ul, Struct
 from solders.pubkey import Pubkey
 
-# Import local packages
 from core.client import SolanaClient
-from core.pubkeys import LAMPORTS_PER_SOL
-from core.pubkeys import TOKEN_DECIMALS
+from core.pubkeys import LAMPORTS_PER_SOL, TOKEN_DECIMALS
 
-# Define 'logger'
+
 logger = logging.getLogger(__name__)
 
-# Define 'EXPECTED_DISCRIMINATOR'
+# Discriminator for the bonding curve account
 EXPECTED_DISCRIMINATOR: Final[bytes] = struct.pack("<Q", 6966180631402821399)
 
 
-# Class 'BondingCurveState'
 class BondingCurveState:
-    """ Class description """
+    """Represents the state of a pump.fun bonding curve."""
 
-    # Define 'DEFSTRUCT'
-    DEFSTRUCT = Struct
-    (
+    _STRUCT = Struct(
         "virtual_token_reserves" / Int64ul,
         "virtual_sol_reserves" / Int64ul,
         "real_token_reserves" / Int64ul,
         "real_sol_reserves" / Int64ul,
         "token_total_supply" / Int64ul,
-        "complete" / Flag
+        "complete" / Flag,
     )
 
-    # Class initialization
     def __init__(self, data: bytes) -> None:
-        """ Initializer description """
+        """Parse bonding curve data.
+
+        Args:
+            data: Raw account data
+
+        Raises:
+            ValueError: If data cannot be parsed
+        """
         if data[:8] != EXPECTED_DISCRIMINATOR:
             raise ValueError("Invalid curve state discriminator")
 
-        parsed = BondingCurveState.DEFSTRUCT.parse(data[8:])
+        parsed = self._STRUCT.parse(data[8:])
         self.__dict__.update(parsed)
 
-    # Function 'calculate_price'
     def calculate_price(self) -> float:
-        """ Function description """
+        """Calculate token price in SOL.
+
+        Returns:
+            Token price in SOL
+
+        Raises:
+            ValueError: If reserve state is invalid
+        """
         if self.virtual_token_reserves <= 0 or self.virtual_sol_reserves <= 0:
             raise ValueError("Invalid reserve state")
 
-        return (self.virtual_sol_reserves / LAMPORTS_PER_SOL) / (self.virtual_token_reserves / 10**TOKEN_DECIMALS)
+        return (self.virtual_sol_reserves / LAMPORTS_PER_SOL) / (
+            self.virtual_token_reserves / 10**TOKEN_DECIMALS
+        )
 
-    # Function 'token_reserves'
     @property
     def token_reserves(self) -> float:
-        """ Function description """
+        """Get token reserves in decimal form."""
         return self.virtual_token_reserves / 10**TOKEN_DECIMALS
 
-    # Function 'sol_reserves'
     @property
     def sol_reserves(self) -> float:
-        """ Function description """
+        """Get SOL reserves in decimal form."""
         return self.virtual_sol_reserves / LAMPORTS_PER_SOL
 
 
-# Class 'BondingCurveHandler'
 class BondingCurveHandler:
-    """ Class description """
+    """Manager for bonding curve operations."""
 
-    # Class initialization
     def __init__(self, client: SolanaClient):
-        """ Initializer description """
+        """Initialize with Solana client.
+
+        Args:
+            client: Solana client for RPC calls
+        """
         self.client = client
 
-    # Function 'get_curve_state'
     async def get_curve_state(self, curve_address: Pubkey) -> BondingCurveState:
-        """ Function description """
+        """Get the state of a bonding curve.
+
+        Args:
+            curve_address: Address of the bonding curve account
+
+        Returns:
+            Bonding curve state
+
+        Raises:
+            ValueError: If curve data is invalid
+        """
         try:
             account = await self.client.get_account_info(curve_address)
-            if not account or not getattr(account, "data", None):
-                logger.error(f"[CRITICAL] Bonding curve account {curve_address} is empty or invalid")
+            if not account.data:
                 raise ValueError(f"No data in bonding curve account {curve_address}")
 
-            if not isinstance(account.data, bytes):
-                logger.error(f"[CRITICAL] Unexpected type for account.data: {type(account.data)} — expected bytes")
-                raise ValueError("account.data is not of type bytes")
-
-            logger.debug(f"Fetched account: {account}")
-            logger.debug(f"Type of account.data: {type(account.data)}")
-            logger.debug(f"Raw data preview: {account.data[:32] if isinstance(account.data, bytes) else account.data}")
-
             return BondingCurveState(account.data)
+
         except Exception as e:
             logger.error(f"Failed to get curve state: {str(e)}")
             raise ValueError(f"Invalid curve state: {str(e)}")
 
-    # Function 'calculate_price'
     async def calculate_price(self, curve_address: Pubkey) -> float:
-        """ Function description """
+        """Calculate the current price of a token.
+
+        Args:
+            curve_address: Address of the bonding curve account
+
+        Returns:
+            Token price in SOL
+        """
         curve_state = await self.get_curve_state(curve_address)
         return curve_state.calculate_price()
 
-    # Function 'calculate_expected_tokens'
-    async def calculate_expected_tokens(self, curve_address: Pubkey, sol_amount: float) -> float:
-        """ Function description """
+    async def calculate_expected_tokens(
+        self, curve_address: Pubkey, sol_amount: float
+    ) -> float:
+        """Calculate the expected token amount for a given SOL input.
+
+        Args:
+            curve_address: Address of the bonding curve account
+            sol_amount: Amount of SOL to spend
+
+        Returns:
+            Expected token amount
+        """
         curve_state = await self.get_curve_state(curve_address)
         price = curve_state.calculate_price()
         return sol_amount / price

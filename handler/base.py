@@ -26,14 +26,29 @@ class TokenInfo:
     # Define 'mint'
     mint: Pubkey
 
-    # Define 'bonding_curve'
-    bonding_curve: Pubkey
+    # Define 'boundingcurve'
+    boundingcurve: Pubkey
 
-    # Define 'associated_bonding_curve'
-    associated_bonding_curve: Pubkey
+    # Define 'basecurve'
+    basecurve: Pubkey
 
     # Define 'user'
     user: Pubkey
+
+    # Define 'created'
+    created: int | float = 0.001
+
+    # Define 'price'
+    price: float | None = None
+
+    # Define 'liquidity'
+    liquidity: float | None = None
+
+    # Define 'volume'
+    volume: float | None = None
+
+    # Define 'marketcap'
+    marketcap: float | None = None
 
     # Function 'from_dict'
     @classmethod
@@ -44,8 +59,8 @@ class TokenInfo:
             symbol=data["symbol"],
             uri=data["uri"],
             mint=Pubkey.from_string(data["mint"]),
-            bonding_curve=Pubkey.from_string(data["bondingCurve"]),
-            associated_bonding_curve=Pubkey.from_string(data["associatedBondingCurve"]),
+            boundingcurve=Pubkey.from_string(data["bondingCurve"]),
+            basecurve=Pubkey.from_string(data["associatedBondingCurve"]),
             user=Pubkey.from_string(data["user"]),
         )
 
@@ -57,8 +72,8 @@ class TokenInfo:
             "symbol": self.symbol,
             "uri": self.uri,
             "mint": str(self.mint),
-            "bondingCurve": str(self.bonding_curve),
-            "associatedBondingCurve": str(self.associated_bonding_curve),
+            "bondingCurve": str(self.boundingcurve),
+            "associatedBondingCurve": str(self.basecurve),
             "user": str(self.user),
        }
 
@@ -71,6 +86,7 @@ class TradeResult:
     tx_signature: str | None = None
     error_message: str | None = None
     amount: float | None = None
+    total: float | None = None
     price: float | None = None
 
 
@@ -90,7 +106,7 @@ class Trader(ABC):
         """ Function description """
         return [
             token_info.mint,                # Token mint address
-            token_info.bonding_curve,       # Bonding curve address
+            token_info.boundingcurve,       # Bonding curve address
             PumpAddresses.PROGRAM,          # Pump.fun program address
             PumpAddresses.FEE               # Pump.fun fee account
         ]

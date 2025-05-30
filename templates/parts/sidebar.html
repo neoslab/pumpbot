@@ -1,4 +1,4 @@
-<div class="sidebar sidebar-dark sidebar-main sidebar-expand-lg">
+<div class="sidebar sidebar-dark sidebar-main sidebar-expand-lg sidebar-main-resized">
     <div class="sidebar-content">
         <div class="sidebar-section">
             <div class="sidebar-section-body d-flex justify-content-center">
@@ -20,49 +20,49 @@
                     <i class="ph-dots-three sidebar-resize-show"></i>
                 </li>
                 <li class="nav-item">
-                    <a href="{{url_for('home')}}" class="nav-link active">
+                    <a href="{{url_for('home')}}" class="nav-link {% if request.endpoint == 'home' %}active{% endif %}">
                         <i class="ph-house"></i>
                         <span>Dashboard</span>
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a href="{{url_for('trades')}}" class="nav-link">
+                    <a href="{{url_for('trades')}}" class="nav-link {% if request.endpoint == 'trades' %}active{% endif %}">
                         <i class="ph-swatches"></i>
                         <span>Trades</span>
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a href="{{url_for('scanner')}}" class="nav-link">
+                    <a href="{{url_for('screener')}}" class="nav-link {% if request.endpoint == 'screener' %}active{% endif %}">
                         <i class="ph-broadcast"></i>
-                        <span>Scanner</span>
+                        <span>Screener</span>
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a href="{{url_for('bots')}}" class="nav-link">
+                    <a href="{{url_for('bots')}}" class="nav-link {% if request.endpoint == 'bots' %}active{% endif %}">
                         <i class="ph-columns"></i>
                         <span>Bots</span>
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a href="{{url_for('wallet')}}" class="nav-link">
+                    <a href="{{url_for('wallet')}}" class="nav-link {% if request.endpoint == 'wallet' %}active{% endif %}">
                         <i class="ph-wallet"></i>
                         <span>Wallet</span>
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a href="{{url_for('endpoint')}}" class="nav-link">
+                    <a href="{{url_for('endpoint')}}" class="nav-link {% if request.endpoint == 'endpoint' %}active{% endif %}">
                         <i class="ph-table"></i>
                         <span>Endpoint</span>
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a href="{{url_for('logs')}}" class="nav-link">
+                    <a href="{{url_for('logs')}}" class="nav-link {% if request.endpoint == 'logs' %}active{% endif %}">
                         <i class="ph-note-pencil"></i>
                         <span>Logs</span>
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a href="{{url_for('changelog')}}" class="nav-link">
+                    <a href="{{url_for('changelog')}}" class="nav-link {% if request.endpoint == 'changelog' %}active{% endif %}">
                         <i class="ph-list-numbers"></i>
                         <span>Changelog</span>
                         <span class="badge bg-primary align-self-center rounded-pill ms-auto">{{projectvers}}</span>

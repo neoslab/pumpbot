@@ -18,10 +18,14 @@
                                     {{form.csrf_token}}
                                     {% with messages = get_flashed_messages(with_categories=true) %}
                                         {% if messages %}
+                                            {% set icons = {'success': 'ph-check-circle', 'danger': 'ph-x-circle'} %}
                                             {% for category, message in messages %}
-                                                <div class="alert alert-{{category}} alert-dismissible fade show" role="alert">
-                                                    {{message}}
-                                                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                                <div class="alert alert-{{category}} alert-icon-start alert-dismissible fade show mt-3">
+                                                    <span class="alert-icon bg-{{category}} text-white">
+                                                        <i class="{{icons.get(category, 'ph-info')}}"></i>
+                                                    </span>
+                                                    <span>{{message}}</span>
+                                                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                                                 </div>
                                             {% endfor %}
                                         {% endif %}

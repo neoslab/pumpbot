@@ -3,6 +3,7 @@ import base58
 import base64
 import json
 import logging
+import os
 import struct
 
 # Import packages
@@ -49,9 +50,9 @@ class LogsProcessor:
 
                     if parsed_data and "name" in parsed_data:
                         mint = Pubkey.from_string(parsed_data["mint"])
-                        bonding_curve = Pubkey.from_string(parsed_data["bondingCurve"])
+                        boundingcurve = Pubkey.from_string(parsed_data["bondingCurve"])
                         associated_curve = self._find_associated_bonding_curve(
-                            mint, bonding_curve
+                            mint, boundingcurve
                         )
 
                         return TokenInfo(
@@ -59,8 +60,8 @@ class LogsProcessor:
                             symbol=parsed_data["symbol"],
                             uri=parsed_data["uri"],
                             mint=mint,
-                            bonding_curve=bonding_curve,
-                            associated_bonding_curve=associated_curve,
+                            boundingcurve=boundingcurve,
+                            basecurve=associated_curve,
                             user=Pubkey.from_string(parsed_data["user"]),
                         )
                 except Exception as e:
@@ -112,11 +113,11 @@ class LogsProcessor:
 
     # Function '_find_associated_bonding_curve'
     @staticmethod
-    def _find_associated_bonding_curve(mint: Pubkey, bonding_curve: Pubkey) -> Pubkey:
+    def _find_associated_bonding_curve(mint: Pubkey, boundingcurve: Pubkey) -> Pubkey:
         """ Function description """
         derived_address, _ = Pubkey.find_program_address(
             [
-                bytes(bonding_curve),
+                bytes(boundingcurve),
                 bytes(SystemAddresses.TOKEN_PROGRAM),
                 bytes(mint),
             ],
@@ -143,7 +144,9 @@ class PumpProcessor:
     def _load_idl() -> dict[str, Any]:
         """ Function description """
         try:
-            with open("global/pumpfun.json") as f:
+            root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+            idl_path = os.path.join(root_dir, "global", "pumpswap.json")
+            with open(idl_path) as f:
                 return json.load(f)
         except Exception as e:
             logger.error(f"Failed to load IDL: {str(e)}")
@@ -209,8 +212,8 @@ class PumpProcessor:
                     symbol=decoded_args["symbol"],
                     uri=decoded_args["uri"],
                     mint=Pubkey.from_string(decoded_args["mint"]),
-                    bonding_curve=Pubkey.from_string(decoded_args["bondingCurve"]),
-                    associated_bonding_curve=Pubkey.from_string(
+                    boundingcurve=Pubkey.from_string(decoded_args["bondingCurve"]),
+                    basecurve=Pubkey.from_string(
                         decoded_args["associatedBondingCurve"]
                     ),
                     user=Pubkey.from_string(decoded_args["user"]),

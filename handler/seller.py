@@ -1,12 +1,19 @@
 # Import libraries
+import asyncio
+import base58
 import logging
+import os
 import struct
 
 # Import packages
+from decimal import Decimal
+from decimal import InvalidOperation
 from typing import Final
 from solders.instruction import AccountMeta
 from solders.instruction import Instruction
 from solders.pubkey import Pubkey
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
 
 # Import local packages
 from core.client import SolanaClient
@@ -20,6 +27,8 @@ from core.wallet import Wallet
 from handler.base import TokenInfo
 from handler.base import Trader
 from handler.base import TradeResult
+from utils.models import PumpBase
+from utils.models import PumpTableTrades
 
 # Define 'logger'
 logger = logging.getLogger(__name__)
@@ -33,7 +42,14 @@ class TokenSeller(Trader):
     """ Class description """
 
     # Class initialization
-    def __init__(self, client: SolanaClient, wallet: Wallet, curve_manager: BondingCurveHandler, priority_fee_manager: PriorityFeeHandler, slippage: float = 0.25, max_retries: int = 5):
+    def __init__(self,
+         client: SolanaClient,
+         wallet: Wallet,
+         curve_manager: BondingCurveHandler,
+         priority_fee_manager: PriorityFeeHandler,
+         slippage: float = 0.25,
+         max_retries: int = 5,
+         sandbox: bool = False):
         """ Initializer description """
         self.client = client
         self.wallet = wallet
@@ -41,40 +57,68 @@ class TokenSeller(Trader):
         self.priority_fee_manager = priority_fee_manager
         self.slippage = slippage
         self.max_retries = max_retries
+        self.sandbox = sandbox
+
+        # === Trades Database ===
+        datapathdir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+        dbtradesdir = os.path.join(datapathdir, "database")
+        os.makedirs(dbtradesdir, exist_ok=True)
+        dbtradespath = os.path.join(dbtradesdir, "trades.db")
+        dbtradesbase = f"sqlite:///{dbtradespath}"
+        self.dbtradeengine = create_engine(dbtradesbase)
+        PumpBase.metadata.create_all(self.dbtradeengine)
+        self.TradesSession = sessionmaker(bind=self.dbtradeengine)
+
+    # Function 'execute'
+    async def _get_token_balance_from_db(self, mint: str) -> Decimal | None:
+        """ Function description """
+        sessiondb = self.TradesSession()
+        try:
+            trade = (sessiondb.query(PumpTableTrades).filter_by(mint=mint, status="OPEN").order_by(PumpTableTrades.start.desc()).first())
+            if trade and trade.amount:
+                try:
+                    return Decimal(trade.amount.replace(',', ''))
+                except (InvalidOperation, AttributeError):
+                    return None
+            return None
+        finally:
+            sessiondb.close()
 
     # Function 'execute'
     async def execute(self, token_info: TokenInfo, *args, **kwargs) -> TradeResult:
         """ Function description """
         try:
             associated_token_account = self.wallet.get_associated_token_address(token_info.mint)
-            token_balance = await self.client.get_token_account_balance(associated_token_account)
-            token_balance_decimal = token_balance / 10**TOKEN_DECIMALS
+            if self.sandbox is False:
+                token_balance = await self.client.get_token_account_balance(associated_token_account)
+            else:
+                token_balance = await self._get_token_balance_from_db(str(token_info.mint))
+
+            token_balance_decimal = token_balance / 10 ** TOKEN_DECIMALS
             logger.info(f"Token balance: {token_balance_decimal}")
 
             if token_balance == 0:
-                logger.info("No tokens to sell.")
                 return TradeResult(success=False, error_message="No tokens to sell")
 
-            curve_state = await self.curve_manager.get_curve_state(token_info.bonding_curve)
+            curve_state = await self.curve_manager.get_curve_state(token_info.boundingcurve)
             token_price_sol = curve_state.calculate_price()
-            logger.info(f"Price per Token: {token_price_sol:.8f} SOL")
-
-            amount = token_balance
             expected_sol_output = float(token_balance_decimal) * float(token_price_sol)
-            slippage_factor = 1 - self.slippage
-            min_sol_output = int((expected_sol_output * slippage_factor) * LAMPORTS_PER_SOL)
+            min_sol_output = int((expected_sol_output * (1 - self.slippage)) * LAMPORTS_PER_SOL)
 
-            logger.info(f"Selling {token_balance_decimal} tokens")
-            logger.info(f"Expected SOL output: {expected_sol_output:.8f} SOL")
-            logger.info(f"Minimum SOL output (with {self.slippage * 100}% slippage): {min_sol_output / LAMPORTS_PER_SOL:.8f} SOL")
-            tx_signature = await self._send_sell_transaction(token_info, associated_token_account, amount, min_sol_output)
-            success = await self.client.confirm_transaction(tx_signature)
+            logger.info(f"Selling {token_balance} tokens at ~{token_price_sol:.8f} SOL each")
+            logger.info(f"Expected SOL output: {expected_sol_output:.8f} | Min with slippage: {min_sol_output / LAMPORTS_PER_SOL:.8f} SOL")
 
-            if success:
-                logger.info(f"Sell transaction confirmed: {tx_signature}")
-                return TradeResult(success=True, tx_signature=tx_signature, amount=token_balance_decimal, price=token_price_sol)
+            if self.sandbox is True:
+                tx_signature = base58.b58encode(os.urandom(64)).decode("utf-8")
+                logger.info(f"Fake sell confirmed (sandbox mode): {tx_signature}")
+                await asyncio.sleep(2)
+                return TradeResult(success=True, tx_signature=tx_signature, amount=token_balance, price=token_price_sol)
             else:
-                return TradeResult(success=False, error_message=f"Transaction failed to confirm: {tx_signature}")
+                tx_signature = await self._send_sell_transaction(token_info, associated_token_account, token_balance, min_sol_output)
+                success = await self.client.confirm_transaction(tx_signature)
+                if success:
+                    return TradeResult(success=True, tx_signature=tx_signature, amount=token_balance_decimal, price=token_price_sol)
+                return TradeResult(success=False, error_message="Transaction failed to confirm")
 
         except Exception as e:
             logger.error(f"Sell operation failed: {str(e)}")
@@ -87,8 +131,8 @@ class TokenSeller(Trader):
             AccountMeta(pubkey = PumpAddresses.GLOBAL, is_signer = False, is_writable = False),
             AccountMeta(pubkey = PumpAddresses.FEE, is_signer = False, is_writable = True),
             AccountMeta(pubkey = token_info.mint, is_signer = False, is_writable = False),
-            AccountMeta(pubkey = token_info.bonding_curve, is_signer = False, is_writable = True),
-            AccountMeta(pubkey = token_info.associated_bonding_curve,is_signer = False, is_writable = True),
+            AccountMeta(pubkey = token_info.boundingcurve, is_signer = False, is_writable = True),
+            AccountMeta(pubkey = token_info.basecurve,is_signer = False, is_writable = True),
             AccountMeta(pubkey = associated_token_account, is_signer = False, is_writable = True),
             AccountMeta(pubkey = self.wallet.pubkey, is_signer = True, is_writable = True),
             AccountMeta(pubkey = SystemAddresses.PROGRAM, is_signer = False, is_writable = False),

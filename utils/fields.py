@@ -19,7 +19,7 @@ class BotFields:
                     'description': 'Enable or disable this bot instance entirely.',
                     'options': ['True', 'False']
                 },
-                'name': {
+                'botname': {
                     'label': 'Bot Name',
                     'type': 'text',
                     'description': 'A unique name to identify and reference this specific bot configuration.'
@@ -30,15 +30,15 @@ class BotFields:
                     'description': 'When enabled, activates paper trading mode (simulated trades with no real SOL).',
                     'options': ['True', 'False']
                 },
+                'maxopentrades': {
+                    'label': 'Max. Open Trades',
+                    'type': 'text',
+                    'description': 'Maximum number of simultaneous trades that can be open at any given time. Set to 0 for unlimited.'
+                },
                 'initbalance': {
                     'label': 'Initial Balance',
                     'type': 'text',
                     'description': 'Starting virtual balance in SOL for the bot when running in sandbox mode.'
-                },
-                'opentrades': {
-                    'label': 'Open Trades',
-                    'type': 'text',
-                    'description': 'Maximum number of simultaneous trades that can be open at any given time. Set to 0 for unlimited.'
                 }
             },
             'monitoring': {
@@ -48,6 +48,11 @@ class BotFields:
                     'description': 'Defines the event source to listen for token detection (e.g., new blocks or logs).',
                     'options': ['blocks', 'logs']
                 },
+                'interval': {
+                    'label': 'Interval',
+                    'type': 'text',
+                    'description': 'Defines the interval to wait in millseconds before to store the detected token into the database  (e.g. 60000 = 60 seconds).'
+                }
             },
             'filters': {
                 'chainlistener': {
@@ -90,7 +95,7 @@ class BotFields:
                     'type': 'text',
                     'description': 'Cooldown period after a token has been sold before it becomes eligible for another buy.'
                 },
-                'tokenidlenew': {
+                'tokenidlefresh': {
                     'label': 'Token New Detection',
                     'type': 'text',
                     'description': 'Delay before scanning or acting on a newly detected token.'
@@ -98,12 +103,12 @@ class BotFields:
                 'tokenminage': {
                     'label': 'Min. Token Age',
                     'type': 'text',
-                    'description': 'Minimum token age (in seconds) to qualify for trading.'
+                    'description': 'Minimum token age in seconds required to qualify for trading.'
                 },
                 'tokenmaxage': {
                     'label': 'Max. Token Age',
                     'type': 'text',
-                    'description': 'Maximum token age (in seconds) beyond which tokens will be ignored.'
+                    'description': 'Maximum token age in seconds beyond which tokens will be ignored.'
                 },
                 'tokentimeout': {
                     'label': 'Token Timeout',
@@ -178,11 +183,6 @@ class BotFields:
                     'label': 'Trailing Level 5',
                     'type': 'text',
                     'description': 'The fifth trailing profit level the bot must secure, expressed as a percentage.'
-                },
-                'countdown': {
-                    'label': 'Trade Countdown',
-                    'type': 'text',
-                    'description': 'Maximum duration (in seconds) a trade can stay open without reaching stop loss or take profit.'
                 }
             },
             'priority': {
@@ -245,22 +245,22 @@ class BotFields:
                 'minmarketcap': {
                     'label': 'Min. Market Cap',
                     'type': 'text',
-                    'description': 'Minimum market capitalization (USD) required for a token to be eligible.'
+                    'description': 'Minimum market capitalization (SOL) required for a token to be eligible.'
                 },
                 'maxmarketcap': {
                     'label': 'Max. Market Cap',
                     'type': 'text',
-                    'description': 'Maximum market capitalization (USD) allowed for a token to qualify.'
+                    'description': 'Maximum market capitalization (SOL) allowed for a token to qualify.'
                 },
                 'minmarketvol': {
                     'label': 'Min. Market Volume',
                     'type': 'text',
-                    'description': 'Minimum trading volume (USD) required for a token to be considered.'
+                    'description': 'Minimum trading volume (SOL) required for a token to be considered.'
                 },
                 'maxmarketvol': {
                     'label': 'Max. Market Volume',
                     'type': 'text',
-                    'description': 'Maximum trading volume (USD) allowed for a token to qualify.'
+                    'description': 'Maximum trading volume (SOL) allowed for a token to qualify.'
                 },
                 'minholdowner': {
                     'label': 'Min. Owner Hold',
@@ -301,12 +301,12 @@ class BotFields:
                 'minliquidity': {
                     'label': 'Min. Liquidity Pool',
                     'type': 'text',
-                    'description': 'Minimum liquidity (in USD) the token must have in its trading pool.'
+                    'description': 'Minimum liquidity (in SOL) the token must have in its trading pool.'
                 },
                 'maxliquidity': {
                     'label': 'Max. Liquidity Pool',
                     'type': 'text',
-                    'description': 'Maximum liquidity (in USD) allowed for token eligibility.'
+                    'description': 'Maximum liquidity (in SOL) allowed for token eligibility.'
                 }
             }
         }
