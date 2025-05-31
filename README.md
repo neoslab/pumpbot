@@ -75,7 +75,13 @@ source pumpbot/bin/activate
 
 ## Install PIP dependencies
 
-If you are using Linux, open the `requirements.txt` file and uncomment the line related to the `uvloop` package before running the command below.
+If you are using Linux, run the following command to ensure `uvloop` be installed along with the another required packages.
+
+```bash
+sed -i 's/^#\?uvloop>=0.21.0/uvloop>=0.21.0/' $HOME/pumpbot/requirements.txt
+```
+
+Install the PIP packages dependencies.
 
 ```bash
 python -m pip install -r requirements.txt
@@ -90,7 +96,7 @@ nano config/user.yaml
 ## Launch the bot
 
 ```bash
-nohup python app.py > output-app.log 2>&1 &
+nohup python app.py > nohup.log 2>&1 &
 ```
 
 * * *

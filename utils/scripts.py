@@ -55,3 +55,12 @@ class ScriptUtils:
         """ Function description """
         ansi_escape = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
         return ansi_escape.sub('', text)
+
+    @staticmethod
+    # === Function 'unixtodatetime' ===
+    def unixtodatetime(value):
+        """ Function description """
+        try:
+            return datetime.datetime.fromtimestamp(float(value)).strftime('%Y-%m-%d %H:%M:%S')
+        except (ValueError, TypeError, OSError, OverflowError):
+            return ''

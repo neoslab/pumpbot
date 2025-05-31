@@ -9,7 +9,7 @@ main:
 
     # Bot Name
     # A unique name to identify and reference this specific bot configuration.
-    botname: "bot-trader-1"
+    botname: ""
 
     # Sandbox Mode
     # When enabled, activates paper trading mode (simulated trades with no real SOL).

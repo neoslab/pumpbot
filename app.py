@@ -1,5 +1,4 @@
 # Import libraries
-import datetime
 import os
 import psutil
 import subprocess
@@ -8,6 +7,7 @@ import uuid
 import yaml
 
 # Import packages
+from datetime import datetime
 from decimal import Decimal
 from decimal import InvalidOperation
 from functools import wraps
@@ -23,6 +23,7 @@ from flask_wtf import CSRFProtect
 from math import ceil
 from sqlalchemy import create_engine
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm import scoped_session
 from sqlalchemy.orm import sessionmaker
 
 # Import dependencies
@@ -59,41 +60,42 @@ class PumpBotUI:
         self.userfile = 'config/user.yaml'
         os.makedirs(self.botsdir, exist_ok=True)
 
-        # === Trades Database ===
-        dbtokendir = os.path.join(basedir, "database")
-        os.makedirs(dbtokendir, exist_ok=True)
-        dbtokenspath = os.path.join(dbtokendir, "tokens.db")
-        dbtokensbase = f"sqlite:///{dbtokenspath}"
+        # === Shared DB Config ===
+        dbdir = os.path.join(basedir, "database")
+        os.makedirs(dbdir, exist_ok=True)
 
-        self.tokensengine = create_engine(dbtokensbase)
+        engine_options = {
+            "connect_args": {"check_same_thread": False},
+            "pool_size": 10,
+            "max_overflow": 20,
+            "pool_timeout": 30
+        }
+
+        # === Tokens Database ===
+        dbtokenspath = os.path.join(dbdir, "tokens.db")
+        self.tokensengine = create_engine(f"sqlite:///{dbtokenspath}", **engine_options)
         PumpBase.metadata.create_all(self.tokensengine)
-        self.TokensSession = sessionmaker(bind=self.tokensengine)
+        self.TokensSession = scoped_session(sessionmaker(bind=self.tokensengine))
 
         # === Trades Database ===
-        dbtradesdir = os.path.join(basedir, "database")
-        os.makedirs(dbtradesdir, exist_ok=True)
-        dbtradespath = os.path.join(dbtradesdir, "trades.db")
-        dbtradesbase = f"sqlite:///{dbtradespath}"
-
-        self.dbtradesengine = create_engine(dbtradesbase)
+        dbtradespath = os.path.join(dbdir, "trades.db")
+        self.dbtradesengine = create_engine(f"sqlite:///{dbtradespath}", **engine_options)
         PumpBase.metadata.create_all(self.dbtradesengine)
-        self.TradesSession = sessionmaker(bind=self.dbtradesengine)
+        self.TradesSession = scoped_session(sessionmaker(bind=self.dbtradesengine))
 
         # === Wallet Database ===
-        dbwalletdir = os.path.join(basedir, "database")
-        os.makedirs(dbwalletdir, exist_ok=True)
-        dbwalletpath = os.path.join(dbwalletdir, "wallet.db")
-        dbwalletbase = f"sqlite:///{dbwalletpath}"
-
-        self.dbwalletengine = create_engine(dbwalletbase)
+        dbwalletpath = os.path.join(dbdir, "wallet.db")
+        self.dbwalletengine = create_engine(f"sqlite:///{dbwalletpath}", **engine_options)
         PumpBase.metadata.create_all(self.dbwalletengine)
-        self.WalletSession = sessionmaker(bind=self.dbwalletengine)
+        self.WalletSession = scoped_session(sessionmaker(bind=self.dbwalletengine))
 
         # Flask context + routes
         self.app.context_processor(self.injectglobals)
         self.routes()
         self.app.jinja_env.filters['safedatetime'] = ScriptUtils.safedatetime
+        self.app.jinja_env.filters['unixtodatetime'] = ScriptUtils.unixtodatetime
         self.app.jinja_env.filters['formatsuffix'] = NumberScaler.formatsuffix
+        self.app.jinja_env.filters['formatdecimal'] = NumberScaler.formatdecimal
 
     # Function 'botcheckproc'
     @staticmethod
@@ -110,9 +112,9 @@ class PumpBotUI:
 
     # Function 'injectglobals'
     def injectglobals(self):
-        """ Function description """
+        """ Inject global values into templates """
         botstatus = PumpBotUI.botcheckproc()
-        sessdbwallet = self.WalletSession()
+        sessiondbwallet = self.WalletSession()
         try:
             dbwalletdir = os.path.abspath(os.path.dirname(__file__))
             dbwalletpath = os.path.join(dbwalletdir, "database", "wallet.db")
@@ -124,9 +126,8 @@ class PumpBotUI:
                     'botstatus': botstatus
                 }
 
-            wallet = sessdbwallet.get(PumpTableWallet, 1)
+            wallet = sessiondbwallet.get(PumpTableWallet, 1)
             balance = wallet.balance if wallet and wallet.balance else '0.00'
-            sessdbwallet.close()
             return {
                 'projectname': 'PumpBot',
                 'projectvers': '4.0',
@@ -141,6 +142,8 @@ class PumpBotUI:
                 'walletbalance': '0.000000000',
                 'botstatus': botstatus
             }
+        finally:
+            sessiondbwallet.close()
 
     # Function 'formatdata'
     @staticmethod
@@ -186,9 +189,7 @@ class PumpBotUI:
             """ Function description """
             if 'user' not in session:
                 return redirect(url_for('login'))
-
             return f(*args, **kwargs)
-
         return checksession
 
     # Function 'routes'
@@ -197,7 +198,7 @@ class PumpBotUI:
         app = self.app
 
         # Start Bot Status
-        @app.route('/api/botstatus', methods=['GET'])
+        @app.route('/api/show-status', methods=['GET'])
         def botstatus():
             status = PumpBotUI.botcheckproc()
             return jsonify({
@@ -207,7 +208,7 @@ class PumpBotUI:
             })
 
         # Start Bot
-        @app.route('/api/botstart', methods=['POST'])
+        @app.route('/api/start-trade', methods=['POST'])
         @self.loadsession
         def botstart():
             """Start bot.py as a background process."""
@@ -220,7 +221,7 @@ class PumpBotUI:
                 return jsonify({'success': False, 'message': f'Failed to start bot: {str(e)}'}), 500
 
         # Stop Bot
-        @app.route('/api/botstop', methods=['POST'])
+        @app.route('/api/stop-trade', methods=['POST'])
         @self.loadsession
         def botstop():
             try:
@@ -251,18 +252,88 @@ class PumpBotUI:
             except Exception as e:
                 return jsonify({'success': False, 'message': f'Failed to stop bot: {str(e)}'}), 500
 
-        @app.route('/api/botbalance', methods=['GET'])
+        @app.route('/api/show-balance', methods=['GET'])
         def botbalance():
             try:
-                sessdbwallet = self.WalletSession()
-                wallet = sessdbwallet.get(PumpTableWallet, 1)
-                balance = wallet.balance if wallet and wallet.balance else '0.000000000'
-                return jsonify({'balance': f"{float(balance):.9f}"})
+                sessiondbwallet = self.WalletSession()
+                try:
+                    crypto = sessiondbwallet.get(PumpTableWallet, 1)
+                    balance = crypto.balance if crypto and crypto.balance else '0.000000000'
+                    return jsonify({'balance': f"{float(balance):.9f}"})
+                finally:
+                    sessiondbwallet.close()
             except Exception as e:
                 print("Wallet balance error:", e)
                 return jsonify({'balance': '0.000000000'})
 
-        # Function 'add'
+        # API: Return latest tokens
+        @app.route('/api/list-tokens', methods=['GET'])
+        @self.loadsession
+        def bottokens():
+            sessiondbtokens = self.TokensSession()
+            solprice = SolPrice.solvsusd()
+            try:
+                tokens = sessiondbtokens.query(PumpTableTokens).order_by(PumpTableTokens.created.desc()).limit(20).all()
+                result = []
+                for token in tokens:
+                    try:
+                        liquidity = Decimal(token.liquidity or 0) * Decimal(solprice or 0)
+                        marketcap = Decimal(token.marketcap or 0) * Decimal(solprice or 0)
+                        volume = Decimal(token.volume or 0)
+                    except (InvalidOperation, TypeError, ValueError):
+                        liquidity = marketcap = volume = Decimal(0)
+
+                    result.append({
+                        'mint': token.mint,
+                        'symbol': token.symbol,
+                        'price': token.price,
+                        'liquidity': NumberScaler.formatsuffix(liquidity) if solprice else 'N/A',
+                        'marketcap': NumberScaler.formatsuffix(marketcap) if solprice else 'N/A',
+                        'volume': NumberScaler.formatsuffix(volume),
+                        'created': ScriptUtils.safedatetime(token.created)
+                    })
+                return jsonify(result)
+            finally:
+                sessiondbtokens.close()
+
+        # API: Return latest trades
+        @app.route('/api/list-trades', methods=['GET'])
+        def bottrades():
+            sessiondbtrades = self.TradesSession()
+            try:
+                positions = (sessiondbtrades.query(PumpTableTrades).order_by(PumpTableTrades.start.desc()).limit(20).all())
+                result = []
+                for position in positions:
+                    rowclass = ''
+                    if position.status == 'CLOSED':
+                        try:
+                            profitvalue = getattr(position, 'profit')
+                            if profitvalue is not None and float(profitvalue) > 0:
+                                rowclass = 'text-success'
+                            else:
+                                rowclass = 'text-danger'
+                        except (InvalidOperation, TypeError, ValueError):
+                            rowclass = ''
+
+                    result.append({
+                        'mint': position.mint,
+                        'start': ScriptUtils.safedatetime(position.start),
+                        'stop': ScriptUtils.safedatetime(position.stop),
+                        'duration': position.duration,
+                        'open': str(getattr(position, 'open')),
+                        'close': str(getattr(position, 'close')),
+                        'amount': str(position.amount),
+                        'total': NumberScaler.formatdecimal(position.total, 10),
+                        'profit': NumberScaler.formatdecimal(position.profit, 10),
+                        'ratio': position.ratio,
+                        'status': position.status,
+                        'rowclass': rowclass
+                    })
+
+                return jsonify(result)
+            finally:
+                sessiondbtrades.close()
+
         @app.route('/add', methods=['GET', 'POST'], endpoint='add')
         @self.loadsession
         def add():
@@ -279,8 +350,7 @@ class PumpBotUI:
 
             with open('model/bot.yaml', 'r') as f:
                 content = yaml.safe_load(f)
-            return render_template('edit.html', form=form, data=content, filename='', metadata=BotFields().getfields(),
-                                   title='Add Bot', mode='add')
+            return render_template('edit.html', form=form, data=content, filename='', metadata=BotFields().getfields(), title='Add Bot', mode='add')
 
         # Function 'bots'
         @app.route('/bots')
@@ -303,7 +373,6 @@ class PumpBotUI:
         def delete(filename):
             """ Function description """
             path = os.path.join(self.botsdir, filename)
-
             if os.path.exists(path):
                 os.remove(path)
                 flash('Bot successfully deleted', 'success')
@@ -352,10 +421,8 @@ class PumpBotUI:
             """ Function description """
             botfiles = []
             for filename in os.listdir(self.botsdir):
-
                 if filename.endswith('.yaml'):
                     filepath = os.path.join(self.botsdir, filename)
-
                     try:
                         with open(filepath, 'r') as f:
                             config = yaml.safe_load(f)
@@ -451,8 +518,6 @@ class PumpBotUI:
             pages = list(range(startpage, lastpage + 1))
             return render_template('screener.html', title='Screener', tokens=tokens, solprice=solchange, query=query, nbrpages=nbrpages, pages=pages)
 
-
-
         # Function 'switch'
         @app.route('/switch', methods=['POST'])
         @self.loadsession
@@ -499,8 +564,7 @@ class PumpBotUI:
                 startpage = max(lastpage - 4, 1)
 
             pages = list(range(startpage, lastpage + 1))
-            return render_template('trades.html', title='Trades', trades=trades, solprice=solchange, query=query,
-                                   nbrpages=nbrpages, pages=pages)
+            return render_template('trades.html', title='Trades', trades=trades, solprice=solchange, query=query, nbrpages=nbrpages, pages=pages)
 
         # Function 'update'
         @app.route('/update/<filename>', methods=['GET', 'POST'], endpoint='update')
@@ -519,8 +583,7 @@ class PumpBotUI:
 
             with open(filepath, 'r') as f:
                 content = yaml.safe_load(f)
-            return render_template('edit.html', form=form, data=content, filename=filename,
-                                   metadata=BotFields().getfields(), title='Update Bot', mode='update')
+            return render_template('edit.html', form=form, data=content, filename=filename, metadata=BotFields().getfields(), title='Update Bot', mode='update')
 
         # Function 'wallet'
         @app.route('/wallet', methods=['GET', 'POST'])
@@ -564,7 +627,7 @@ class PumpBotUI:
         os.makedirs(logdir, exist_ok=True)
 
         logfile = os.path.join(logdir, 'flask.log')
-        timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
         with open(logfile, 'a') as f:
             f.write(f"\n\n--- Flask App Started at {timestamp} ---\n")

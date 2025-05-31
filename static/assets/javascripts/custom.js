@@ -84,7 +84,6 @@ $(document).ready(function()
         })
         .catch(error => 
         {
-            console.error("Error:", error);
             showToast("Server error", 'error');
         });
     }
@@ -92,19 +91,16 @@ $(document).ready(function()
     // Update bot status block and buttons
     function refreshBotStatus() 
     {
-        $.get('/api/botstatus', function(data) 
+        $.get('/api/show-status', function(data) 
         {
             $('#botAPImessage').text(data.label);
             $('#botStatus').removeClass('text-success text-danger').addClass(data.css);
-        }).fail(function(xhr) 
-        {
-            console.error("Bot status fetch failed:", xhr.responseText);
         });
     }
 
     function refreshBotBalance() 
     {
-        $.get('/api/botbalance', function(data) 
+        $.get('/api/show-balance', function(data) 
         {
             $('#botBalance').text(`${data.balance} SOL`);
         });
@@ -125,7 +121,7 @@ $(document).ready(function()
     // Sync filename with bot name field
     $('[name="filename"]').on('input keyup change', function() 
     {
-        $('[name="main.name"]').val($(this).val());
+        $('[name="main.botname"]').val($(this).val());
     });
 
     // Run toggle logic on page load
@@ -143,7 +139,7 @@ $(document).ready(function()
     // Start bot
     $('#startBot').click(function() 
     {
-        $.post('/api/botstart', function(data)
+        $.post('/api/start-trade', function(data)
         {
             showToast(data.message, data.success ? 'success' : 'error');
             if(data.success) 
@@ -155,7 +151,6 @@ $(document).ready(function()
             }
         }).fail(function(xhr) 
         {
-            console.error("Start bot error:", xhr.responseText);
             showToast('Failed to start bot', 'error');
         });
     });
@@ -163,7 +158,7 @@ $(document).ready(function()
     // Stop bot
     $('#stopBot').click(function() 
     {
-        $.post('/api/botstop', function(data) 
+        $.post('/api/stop-trade', function(data) 
         {
             showToast(data.message, data.success ? 'success' : 'error');
             if (data.success) {
@@ -174,7 +169,6 @@ $(document).ready(function()
             }
         }).fail(function(xhr) 
         {
-            console.error("Stop bot error:", xhr.responseText);
             showToast('Failed to stop bot', 'error');
         });
     });
@@ -182,4 +176,53 @@ $(document).ready(function()
     // Auto-refresh status every 5s
     setInterval(refreshBotStatus, 5000);
     setInterval(refreshBotBalance, 5000);
+
+    // Auto-refresh tokens table every 30 seconds
+    setInterval(function() 
+    {
+        $.get('/api/list-trades', function(data) 
+        {
+            const tbody = $('#trades-body');
+            tbody.empty();
+
+            if(data.length > 0) 
+            {
+                $('#trades-alert').fadeOut();
+            
+                tbody.empty();
+                data.forEach(trade => 
+                {
+                    tbody.append(`<tr class="${trade.rowclass}"><td class="text-start">${trade.mint}</td><td class="text-center">${trade.start}</td><td class="text-center">${trade.stop}</td><td class="text-center">${trade.duration}</td><td class="text-end">${trade.open}</td><td class="text-end">${trade.close}</td><td class="text-end">${trade.amount}</td><td class="text-end">${trade.total}</td><td class="text-end">${trade.profit}</td><td class="text-end">${trade.ratio}</td><td class="text-center">${trade.status}</td></tr>`);
+                });
+            }
+            else
+            {
+                $('#trades-alert').fadeIn();
+                tbody.append(`<tr><td class="text-center text-muted" colspan="11">No trades history available yet.</td></tr>`);
+            }
+        });
+    }, 30000);
+
+    setInterval(function() 
+    {
+        $.get('/api/list-tokens', function(data) 
+        {
+            const tbody = $('#tokens-body');
+            tbody.empty();
+
+            if(data.length > 0) 
+            {
+                $('#tokens-alert').fadeOut();
+                data.forEach(token => 
+                {
+                    tbody.append(`<tr><td class="text-start">${token.mint}</td><td class="text-start">${token.symbol.toUpperCase()}</td><td class="text-end">${token.price}</td><td class="text-end">${token.liquidity || 'N/A'}</td><td class="text-end">${token.volume}</td><td class="text-end">${token.marketcap || 'N/A'}</td><td class="text-center">${token.created}</td></tr>`);
+                });
+            } 
+            else 
+            {
+                $('#tokens-alert').fadeIn();
+                tbody.append(`<tr><td class="text-center text-muted" colspan="7">No tokens history available yet.</td></tr>`);
+            }
+        });
+    }, 30000);
 });

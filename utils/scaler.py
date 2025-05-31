@@ -138,3 +138,12 @@ class NumberScaler:
         except (TypeError, ValueError):
             return "n/a"
 
+    @staticmethod
+    # === Function 'formatdecimal' ===
+    def formatdecimal(value, decimals=10):
+        """ Function description """
+        try:
+            formatstr = "{:,.{dec}f}".format(float(value), dec=decimals)
+            return formatstr
+        except (ValueError, TypeError):
+            return 'N/A'

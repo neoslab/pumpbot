@@ -37,8 +37,6 @@
                                                                     <option value="{{opt}}" {% if subval|string == opt %}selected{% endif %}>{{opt}}</option>
                                                                 {% endfor %}
                                                             </select>
-                                                        {% elif fieldmeta.type == 'password' %}
-                                                            <input type="password" class="form-control" name="{{key}}.{{subkey}}" value="{{subval}}" placeholder="Insert a value" autocomplete="off" required>
                                                         {% else %}
                                                             <input type="text" class="form-control" name="{{key}}.{{subkey}}" value="{{subval}}" placeholder="Insert a value" autocomplete="off" required>
                                                         {% endif %}
@@ -53,7 +51,7 @@
                                         {% else %}
                                             <div class="mb-3 bot-fields">
                                                 <label class="form-label">{{key}}</label>
-                                                <input type="text" class="form-control" name="{{key}}" value="{{value}}" placeholder="Insert a value" autocomplete="off" required>
+                                                <input type="text" class="form-control" name="{{key}}" value="{{value}}" placeholder="Insert a value" autocomplete="off" {% if subkey=="botname" %}readonly{% endif %} required>
                                             </div>
                                         {% endif %}
                                     {% endfor %}
