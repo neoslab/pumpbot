@@ -25,7 +25,7 @@ sudo systemctl restart ssh
 ## Install System Dependencies
 
 ```bash
-sudo apt install -y build-essential curl git libbz2-dev libclang-dev libdb5.3-dev \
+sudo apt -y install build-essential curl git libbz2-dev libclang-dev libdb5.3-dev \
 libexpat1-dev libffi-dev libgdbm-dev liblzma-dev libncurses5-dev libncursesw5-dev \
 libpq-dev libreadline-dev libsqlite3-dev libssl-dev libudev-dev llvm net-tools \
 pkg-config protobuf-compiler software-properties-common tk-dev uuid-dev zlib1g-dev
@@ -34,7 +34,7 @@ pkg-config protobuf-compiler software-properties-common tk-dev uuid-dev zlib1g-d
 ## Install Python Packages
 
 ```bash
-sudo apt install -y python3 python3-bs4 python3-cryptography python3-dateutil \
+sudo apt -y install python3 python3-bs4 python3-cryptography python3-dateutil \
 python3-dev python3-django python3-flask python3-ipython python3-jinja2 python3-lxml \
 python3-matplotlib python3-numpy python3-pandas python3-pip python3-pyqt5 \
 python3-requests python3-scipy python3-setuptools python3-sklearn python3-venv
