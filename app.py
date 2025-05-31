@@ -1,6 +1,8 @@
 # Import libraries
 import datetime
 import os
+import psutil
+import subprocess
 import sys
 import uuid
 import yaml
@@ -93,9 +95,23 @@ class PumpBotUI:
         self.app.jinja_env.filters['safedatetime'] = ScriptUtils.safedatetime
         self.app.jinja_env.filters['formatsuffix'] = NumberScaler.formatsuffix
 
+    # Function 'botcheckproc'
+    @staticmethod
+    def botcheckproc():
+        """ Function description """
+        for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
+            try:
+                cmdline = ' '.join(proc.info['cmdline']) if proc.info['cmdline'] else ''
+                if 'bot.py' in cmdline:
+                    return True
+            except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+                continue
+        return False
+
     # Function 'injectglobals'
     def injectglobals(self):
         """ Function description """
+        botstatus = PumpBotUI.botcheckproc()
         sessdbwallet = self.WalletSession()
         try:
             dbwalletdir = os.path.abspath(os.path.dirname(__file__))
@@ -104,7 +120,8 @@ class PumpBotUI:
                 return {
                     'projectname': 'PumpBot',
                     'projectvers': '4.0',
-                    'walletbalance': '0.000000000'
+                    'walletbalance': '0.000000000',
+                    'botstatus': botstatus
                 }
 
             wallet = sessdbwallet.get(PumpTableWallet, 1)
@@ -114,13 +131,15 @@ class PumpBotUI:
                 'projectname': 'PumpBot',
                 'projectvers': '4.0',
                 'walletbalance': balance,
+                'botstatus': botstatus
             }
 
         except SQLAlchemyError:
             return {
                 'projectname': 'PumpBot',
                 'projectvers': '4.0',
-                'walletbalance': '0.000000000'
+                'walletbalance': '0.000000000',
+                'botstatus': botstatus
             }
 
     # Function 'formatdata'
@@ -176,6 +195,72 @@ class PumpBotUI:
     def routes(self):
         """ Function description """
         app = self.app
+
+        # Start Bot Status
+        @app.route('/api/botstatus', methods=['GET'])
+        def botstatus():
+            status = PumpBotUI.botcheckproc()
+            return jsonify({
+                'status': status,
+                'label': 'Running' if status else 'Stopped',
+                'css': 'text-success' if status else 'text-danger'
+            })
+
+        # Start Bot
+        @app.route('/api/botstart', methods=['POST'])
+        @self.loadsession
+        def botstart():
+            """Start bot.py as a background process."""
+            if self.botcheckproc():
+                return jsonify({'success': False, 'message': 'Bot is already running.'}), 200
+            try:
+                self.botcheckproc = subprocess.Popen([sys.executable, 'bot.py'])
+                return jsonify({'success': True, 'message': 'Bot started successfully.'}), 200
+            except Exception as e:
+                return jsonify({'success': False, 'message': f'Failed to start bot: {str(e)}'}), 500
+
+        # Stop Bot
+        @app.route('/api/botstop', methods=['POST'])
+        @self.loadsession
+        def botstop():
+            try:
+                stopped = False
+                bot_path = os.path.abspath(os.path.join(os.path.dirname(__file__), 'bot.py'))
+
+                for proc in psutil.process_iter(['pid', 'cmdline']):
+                    try:
+                        cmdline = proc.info['cmdline']
+                        if not cmdline:
+                            continue
+
+                        # Match exact script
+                        for part in cmdline:
+                            if os.path.abspath(part) == bot_path:
+                                proc.terminate()
+                                proc.wait(timeout=5)
+                                stopped = True
+                                break
+                    except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.TimeoutExpired):
+                        continue
+
+                if stopped:
+                    return jsonify({'success': True, 'message': 'Bot stopped successfully.'}), 200
+                else:
+                    return jsonify({'success': False, 'message': 'Bot is not running.'}), 200
+
+            except Exception as e:
+                return jsonify({'success': False, 'message': f'Failed to stop bot: {str(e)}'}), 500
+
+        @app.route('/api/botbalance', methods=['GET'])
+        def botbalance():
+            try:
+                sessdbwallet = self.WalletSession()
+                wallet = sessdbwallet.get(PumpTableWallet, 1)
+                balance = wallet.balance if wallet and wallet.balance else '0.000000000'
+                return jsonify({'balance': f"{float(balance):.9f}"})
+            except Exception as e:
+                print("Wallet balance error:", e)
+                return jsonify({'balance': '0.000000000'})
 
         # Function 'add'
         @app.route('/add', methods=['GET', 'POST'], endpoint='add')
@@ -364,8 +449,9 @@ class PumpBotUI:
                 startpage = max(lastpage - 4, 1)
 
             pages = list(range(startpage, lastpage + 1))
-            return render_template('screener.html', title='Screener', tokens=tokens, solprice=solchange, query=query,
-                                   nbrpages=nbrpages, pages=pages)
+            return render_template('screener.html', title='Screener', tokens=tokens, solprice=solchange, query=query, nbrpages=nbrpages, pages=pages)
+
+
 
         # Function 'switch'
         @app.route('/switch', methods=['POST'])

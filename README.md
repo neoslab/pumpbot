@@ -90,7 +90,6 @@ nano config/user.yaml
 ## Launch the bot
 
 ```bash
-nohup python bot.py > output-bot.log 2>&1 &
 nohup python app.py > output-app.log 2>&1 &
 ```
 

@@ -17,7 +17,7 @@ main:
 
     # Max. Open Trades
     # Maximum number of simultaneous trades that can be open at any given time. Set to 0 for unlimited.
-    maxopentrades: 5
+    maxopentrades: 20
 
     # Initial Balance
     # Starting virtual balance in SOL for the bot when running in sandbox mode.
@@ -67,11 +67,11 @@ timing:
 
     # Min. Token Age
     # Minimum token age in seconds required to qualify for trading.
-    tokenminage: 0.001
+    tokenminage: 0
 
     # Max. Token Age
     # Maximum token age in seconds beyond which tokens will be ignored.
-    tokenmaxage: 0.005
+    tokenmaxage: 5
 
     # Token Timeout
     # Timeout (in seconds) to wait for token metadata or price response before skipping.
@@ -81,15 +81,15 @@ timing:
 trade:
     # Buy Amount
     # Amount of SOL to allocate for each token purchase.
-    buyamount: 0.0001
+    buyamount: 0.02
 
     # Buy Slippage
     # Maximum allowable slippage for buy orders (as a decimal percentage, e.g., 0.05 = 5%).
-    buyslippage: 0.3
+    buyslippage: 0.05
 
     # Sell Slippage
     # Maximum allowable slippage for sell orders (as a decimal percentage).
-    sellslippage: 0.3
+    sellslippage: 0.1
 
     # Fast Mode
     # Bypass price checks and execute buys immediately after detection.
@@ -105,7 +105,7 @@ trade:
 
     # Take Profit
     # Profit threshold in percentage. The bot will sell if the price increases by this amount.
-    takeprofit: 50
+    takeprofit: 100
 
     # Trailing Profit
     # Activate multilevel trailing profit once the price has increased by these level.
@@ -181,15 +181,15 @@ wipe:
 rules:
     # Min. Market Cap
     # Minimum market capitalization (SOL) required for a token to be eligible.
-    minmarketcap: 6000
+    minmarketcap: 25
 
     # Max. Market Cap
     # Maximum market capitalization (SOL) allowed for a token to qualify.
-    maxmarketcap: 10000
+    maxmarketcap: 500
 
     # Min. Market Volume
     # Minimum trading volume (SOL) required for a token to be considered.
-    minmarketvol: 6000
+    minmarketvol: 1000
 
     # Max. Market Volume
     # Maximum trading volume (SOL) allowed for a token to qualify.
@@ -209,11 +209,11 @@ rules:
 
     # Min. Holders
     # Minimum number of holders required for a token to qualify.
-    minholders: 10
+    minholders: 2
 
     # Max. Holders
     # Maximum number of holders allowed for a token to qualify.
-    maxholders: 20
+    maxholders: 10000
 
     # Holders Check
     # Enable to verify that all holders have a minimum SOL balance.
@@ -225,8 +225,8 @@ rules:
 
     # Min. Liquidity Pool
     # Minimum liquidity (in SOL) the token must have in its trading pool.
-    minliquidity: 4000
+    minliquidity: 2
 
     # Max. Liquidity Pool
     # Maximum liquidity (in SOL) allowed for token eligibility.
-    maxliquidity: 10000
+    maxliquidity: 500

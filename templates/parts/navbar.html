@@ -16,6 +16,12 @@
         </div>
         {% if session.get('user') is not none and session.get('user') != '' %}
         <ul class="nav flex-row justify-content-end order-1 order-lg-2">
+            <li id="StartBotCont" class="nav-item">
+                <button id="startBot" class="btn btn-outline-success btn-sm ms-1">Start Bot</button>
+            </li>
+            <li id="StopBotCont" class="nav-item">
+                <button id="stopBot" class="btn btn-outline-danger btn-sm me-1">Stop Bot</button>
+            </li>
 			<li class="nav-item nav-item-dropdown-lg dropdown ms-lg-2">
 				<a href="#" class="navbar-nav-link align-items-center rounded-pill p-1" data-bs-toggle="dropdown">
 					<div class="status-indicator-container">
