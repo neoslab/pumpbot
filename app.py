@@ -54,6 +54,7 @@ class PumpBotUI:
         self.app = Flask(__name__, template_folder=os.path.join(basedir, 'templates'))
         self.app.secret_key = 'supersecretkey'
         self.csrf = CSRFProtect(self.app)
+        self.botprocess = None
 
         # Bots and user config
         self.botsdir = 'bots'
@@ -215,7 +216,7 @@ class PumpBotUI:
             if self.botcheckproc():
                 return jsonify({'success': False, 'message': 'Bot is already running.'}), 200
             try:
-                self.botcheckproc = subprocess.Popen([sys.executable, 'bot.py'])
+                self.botprocess = subprocess.Popen([sys.executable, 'bot.py'])
                 return jsonify({'success': True, 'message': 'Bot started successfully.'}), 200
             except Exception as e:
                 return jsonify({'success': False, 'message': f'Failed to start bot: {str(e)}'}), 500

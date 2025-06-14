@@ -59,7 +59,7 @@
                                                 <td class="text-end">{{ trade.amount }}</td>
                                                 <td class="text-end">{{ trade.total }}</td>
                                                 <td class="text-end">{{ trade.profit | default('N/A') | formatdecimal(10) }}</td>
-                                                <td class="text-end">{{ trade.ratio | default('N/A') | formatdecimal(10) }}</td>
+                                                <td class="text-end">{{ trade.ratio }}</td>
                                                 <td class="text-center">{{ trade.status }}</td>
                                             </tr>
                                         {% endfor %}

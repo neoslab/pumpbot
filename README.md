@@ -1,6 +1,20 @@
-# Server Setup
+# Pumpbot
 
-## Update/upgrade machine
+This project delivers a **fully autonomous trading and sniping bot** designed specifically for **PumpSwap** on the **Solana blockchain**, written entirely in **Python** and engineered to function **independently of third-party APIs**. It directly interacts with the **Solana RPC node** or integrates with **Helius** to fetch and process real-time blockchain data, ensuring low-latency execution and maximum reliability without depending on external aggregators or indexers.
+
+* * *
+
+## Automatic Server Setup
+
+```bash
+wget -qO- https://neoslab.com/wp-content/uploads/bash/pumpbot.sh | bash
+```
+
+* * *
+
+## Manual Server Setup
+
+### Update/upgrade machine
 
 ```bash
 sudo apt -y update && sudo apt -y upgrade && sudo apt -y dist-upgrade
@@ -8,21 +22,21 @@ sudo apt -y remove && sudo apt -y autoremove
 sudo apt -y clean && sudo apt -y autoclean
 ```
 
-## Change the SSH port from 22 to 49622
+### Change the SSH port from 22 to 49622
 
 ```bash
 sudo sed -i 's/^#\?Port 22/Port 49622/' /etc/ssh/sshd_config
 sudo sed -i 's/^#\?ListenStream=22/ListenStream=49622/' /lib/systemd/system/ssh.socket
 ```
 
-## Restart the SSH service
+### Restart the SSH service
 
 ```bash
 sudo systemctl daemon-reload
 sudo systemctl restart ssh
 ```
 
-## Install System Dependencies
+### Install System Dependencies
 
 ```bash
 sudo apt -y install build-essential curl git libbz2-dev libclang-dev libdb5.3-dev \
@@ -31,7 +45,7 @@ libpq-dev libreadline-dev libsqlite3-dev libssl-dev libudev-dev llvm net-tools \
 pkg-config protobuf-compiler software-properties-common tk-dev uuid-dev zlib1g-dev
 ```
 
-## Install Python Packages
+### Install Python Packages
 
 ```bash
 sudo apt -y install python3 python3-bs4 python3-cryptography python3-dateutil \
@@ -44,7 +58,7 @@ python --version
 pip --version
 ```
 
-## Install Rust Latest Version
+### Install Rust Latest Version
 
 ```bash
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y > /dev/null 2>&1
@@ -53,7 +67,7 @@ rustc --version
 cargo --version
 ```
 
-## Install Solana CLI Latest Version
+### Install Solana CLI Latest Version
 
 ```bash
 sh -c "$(curl -sSfL https://release.anza.xyz/stable/install)" > /dev/null 2>&1
@@ -63,7 +77,7 @@ source ~/.bashrc
 solana --version
 ```
 
-## Clone Project Repository
+### Clone Project Repository
 
 ```bash
 cd $HOME
@@ -73,7 +87,7 @@ python3 -m venv pumpbot
 source pumpbot/bin/activate
 ```
 
-## Install PIP dependencies
+### Install PIP dependencies
 
 If you are using Linux, run the following command to ensure `uvloop` be installed along with the another required packages.
 
@@ -87,13 +101,13 @@ Install the PIP packages dependencies.
 python -m pip install -r requirements.txt
 ```
 
-## Modify username and password
+### Modify username and password
 
 ```bash
 nano config/user.yaml
 ```
 
-## Launch the bot
+### Launch the bot
 
 ```bash
 nohup python app.py > nohup.log 2>&1 &
@@ -101,7 +115,7 @@ nohup python app.py > nohup.log 2>&1 &
 
 * * *
 
-## Windows PyCharm Setup
+### Windows PyCharm Setup
 
 **Upgrade PIP if needed**
 
@@ -123,7 +137,7 @@ C:\<DIRECTORY\FULLPATH>\pumpbot\.venv\Scripts\python.exe C:\<DIRECTORY\FULLPATH>
 
 * * *
 
-## Endpoint Configuration
+### Endpoint Configuration
 
 **Solana Node**
 
@@ -139,7 +153,7 @@ https://mainnet.helius-rpc.com/?api-key=<HELIUS-API-KEY>
 wss://mainnet.helius-rpc.com/?api-key=<HELIUS-API-KEY>
 ```
 
-## Bot Configuration
+### Bot Configuration
 
 The trading bots can be fully configured through individual YAML files located in the bots/ folder. Each file defines a separate bot instance with its own strategy, settings, and behavior. You can add as many bots as you want by creating new YAML files in this folder.
 
@@ -378,6 +392,12 @@ rules:
     maxliquidity: 10000
 ```
 
-## License
+### License
 
 This script is open source under the [MIT License](LICENSE).
+
+* * *
+
+### Contact
+
+Created by [@neoslab](https://neoslab.com/contact/) – Feel free to reach out!

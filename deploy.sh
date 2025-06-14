@@ -44,19 +44,11 @@ solana --version
 
 # Clone Project Repository
 cd $HOME
-git clone https://github.com/neoslab/pumpbot
-cd $HOME/pumpbot
-python3 -m venv pumpbot
-source pumpbot/bin/activate
+git clone https://github.com/neoslab/solhawk
+cd $HOME/solhawk
+python3 -m venv solhawk
+source solhawk/bin/activate
 
 # Install PIP dependencies
-sed -i 's/^#\?uvloop>=0.21.0/uvloop>=0.21.0/' $HOME/pumpbot/requirements.txt
+sed -i 's/^#\?uvloop>=0.21.0/uvloop>=0.21.0/' $HOME/solhawk/requirements.txt
 python -m pip install -r requirements.txt
-
-# Setup dashboard credential
-echo "WARNING: Setup your dashboard credential"
-read -p "Username: " username
-sed -i 's/^username: "admin"/username: "${username}"/' $HOME/pumpbot/config/user.yaml
-
-read -p "Password: " password
-sed -i 's/^password: "password"/password: "${password}"/' $HOME/pumpbot/config/user.yaml
