@@ -1,5 +1,8 @@
 # Pumpbot
 
+![Python Version](https://img.shields.io/badge/python-3.12%2B-blue)
+![License](https://img.shields.io/badge/license-MIT-green)
+
 This project delivers a **fully autonomous trading and sniping bot** designed specifically for **PumpSwap** on the **Solana blockchain**, written entirely in **Python** and engineered to function **independently of third-party APIs**. It directly interacts with the **Solana RPC node** or integrates with **Helius** to fetch and process real-time blockchain data, ensuring low-latency execution and maximum reliability without depending on external aggregators or indexers.
 
 * * *
@@ -392,12 +395,28 @@ rules:
     maxliquidity: 10000
 ```
 
-### License
+* * *
 
-This script is open source under the [MIT License](LICENSE).
+## Contributing
+
+Contributions are welcome! Please follow these steps:
+
+1. Fork the repository.
+2. Create a new branch (`git checkout -b feature/your-feature`).
+3. Make your changes and commit them (`git commit -m "Add your feature"`).
+4. Push to your branch (`git push origin feature/your-feature`).
+5. Open a pull request with a clear description of your changes.
+
+Ensure your code follows PEP 8 style guidelines and includes appropriate tests.
 
 * * *
 
-### Contact
+## License
 
-Created by [@neoslab](https://neoslab.com/contact/) – Feel free to reach out!
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+
+* * *
+
+## Contact
+
+For issues, suggestions, or questions, please open an issue on GitHub or contact the maintainer at [GitHub Issues](https://github.com/neoslab/pumpbot/issues).
