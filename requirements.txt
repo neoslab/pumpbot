@@ -1,0 +1,22 @@
+# Main packages
+aiohttp>=3.11.13
+base58>=2.1.1
+flask-wtf>=1.2.2
+flask>=3.1.1
+protobuf>=5.29.4
+psutil>=7.0.0
+pyyaml>=6.0.2
+requests>=2.32.3
+solana>=0.36.6
+solders>=0.26.0
+sqlalchemy>=2.0.41
+websockets>=15.0
+wtforms>=3.2.1
+
+# Fix Construct
+borsh-construct>=0.1.0
+construct>=2.10.67
+construct-typing>=0.5.2
+
+# For Linux only (Uncomment)
+# uvloop>=0.21.0

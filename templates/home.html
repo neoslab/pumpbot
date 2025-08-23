@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-content">
+    {% include 'parts/sidebar.html' %}
+    <div class="content-wrapper">
+        <div class="content-inner">
+            {% include 'parts/breadcrumb.html' %}
+            <div class="content">
+                <div class="card">
+					<div class="card-header">
+						<h5 class="mb-0">{{title}}</h5>
+					</div>
+					<div class="table-responsive">
+                        <table class="table table-striped">
+                            <tr>
+                                <th style="text-align:center;">Filename</th>
+                                <th style="text-align:center;">Control</th>
+                            </tr>
+                            {% if files %}
+                                {% for bot in files %}
+                                    <tr>
+                                        <td style="text-align:left;">{{bot.filename}}</td>
+                                        <td style="text-align:center;width:140px;">
+                                            <div class="form-check form-switch form-check-reverse text-start mb-2">
+                                                <input id="{{bot.id}}" type="checkbox" class="form-check-input" {% if bot.status %}checked{% endif %} onchange="toggleBotSwitch('{{bot.filename}}', this.checked)">
+                                            </div>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            {% else %}
+                                <tr>
+                                    <td colspan="2" class="text-center">No bot to display</td>
+                                </tr>
+                            {% endif %}
+                        </table>
+					</div>
+				</div>
+            </div>
+            {% include 'parts/tailbar.html' %}
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+	<meta charset="utf-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+	<meta name="csrf-token" content="{{csrf_token()}}">
+	<title>{{title}} | {{projectname}}</title>
+	<link href="{{url_for('static', filename='assets/fonts/inter/inter.min.css')}}" rel="stylesheet" type="text/css">
+	<link href="{{url_for('static', filename='assets/icons/fontawesome/css/all.min.css')}}" rel="stylesheet" type="text/css">
+	<link href="{{url_for('static', filename='assets/icons/icomoon/styles.min.css')}}" rel="stylesheet" type="text/css">
+	<link href="{{url_for('static', filename='assets/icons/material/styles.min.css')}}" rel="stylesheet" type="text/css">
+	<link href="{{url_for('static', filename='assets/icons/phosphor/styles.min.css')}}" rel="stylesheet" type="text/css">
+	<link href="{{url_for('static', filename='assets/stylesheets/ltr/default.min.css')}}" id="stylesheet" rel="stylesheet" type="text/css">
+	<link href="{{url_for('static', filename='assets/stylesheets/custom.min.css')}}" rel="stylesheet" type="text/css">
+	<link rel="icon" type="image/png" href="{{url_for('static', filename='assets/images/favicons/favicon-96x96.png')}}" sizes="96x96"/>
+	<link rel="icon" type="image/svg+xml" href="{{url_for('static', filename='assets/images/favicons/favicon.svg')}}"/>
+	<link rel="shortcut icon" href="{{url_for('static', filename='assets/images/favicons/favicon.ico')}}"/>
+	<link rel="apple-touch-icon" sizes="180x180" href="{{url_for('static', filename='assets/images/favicons/apple-touch-icon.png')}}"/>
+	<meta name="apple-mobile-web-app-title" content="{{projectname}}"/>
+	<link rel="manifest" href="{{url_for('static', filename='assets/images/favicons/site.webmanifest')}}"/>
+	<script>const BOTSTATUS = {{ 'true' if botstatus else 'false' | safe }};</script>
+	<script src="{{url_for('static', filename='assets/javascripts/themeswitcher.min.js')}}"></script>
+	<script src="{{url_for('static', filename='assets/javascripts/jquery/jquery.min.js')}}"></script>
+	<script src="{{url_for('static', filename='assets/javascripts/bootstrap/bootstrap.bundle.min.js')}}"></script>
+	<script src="{{url_for('static', filename='assets/javascripts/vendor/prism.min.js')}}"></script>
+	<script src="{{url_for('static', filename='assets/javascripts/app.min.js')}}"></script>
+	<script src="{{url_for('static', filename='assets/javascripts/custom.min.js')}}"></script>
+</head>
+<body id="fullscreen">

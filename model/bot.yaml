@@ -1,0 +1,232 @@
+# This file defines comprehensive parameters and settings for the trading bot.
+# Carefully review and adjust values to match your trading strategy and risk tolerance.
+
+# Bot main configuration
+main:
+    # Bot Status
+    # Enable or disable this bot instance entirely.
+    status: False
+
+    # Bot Name
+    # A unique name to identify and reference this specific bot configuration.
+    botname: ""
+
+    # Sandbox Mode
+    # When enabled, activates paper trading mode (simulated trades with no real SOL).
+    sandbox: True
+
+    # Max. Open Trades
+    # Maximum number of simultaneous trades that can be open at any given time. Set to 0 for unlimited.
+    maxopentrades: 20
+
+    # Initial Balance
+    # Starting virtual balance in SOL for the bot when running in sandbox mode.
+    initbalance: 10
+
+# Monitoring for token selection
+monitoring:
+    # Listener
+    # Defines the event source to listen for token detection (e.g., new blocks or logs).
+    chain: "logs"
+
+    # Interval
+    # Defines the interval to wait in millseconds before to store the detected token into the database  (e.g. 60000 = 60 seconds).
+    interval: 0.001
+
+# Filters for token selection
+filters:
+    # Match String
+    # Only consider tokens whose name or symbol contains this substring.
+    matchstring: Null
+
+    # User Address
+    # Only consider tokens deployed by this specific wallet address.
+    matchaddress: Null
+
+    # No Shorting
+    # If enabled, disables shorting and allows only buy trades.
+    noshorting: False
+
+    # No Stopping
+    # When enabled, the bot continuously executes token trades based on real-time market signals.
+    nostopping: False
+
+# Token timing configuration
+timing:
+    # Token Initialization
+    # Time to wait after a token is created before any trade can be considered.
+    tokenidleinit: 15
+
+    # Token Sell Period
+    # Cooldown period after a token has been sold before it becomes eligible for another buy.
+    tokenidleshort: 15
+
+    # Token Fresh Detection
+    # Delay before scanning or acting on a newly detected token.
+    tokenidlefresh: 15
+
+    # Min. Token Age
+    # Minimum token age in seconds required to qualify for trading.
+    tokenminage: 0
+
+    # Max. Token Age
+    # Maximum token age in seconds beyond which tokens will be ignored.
+    tokenmaxage: 5
+
+    # Token Timeout
+    # Timeout (in seconds) to wait for token metadata or price response before skipping.
+    tokentimeout: 30
+
+# Trading parameters
+trade:
+    # Buy Amount
+    # Amount of SOL to allocate for each token purchase.
+    buyamount: 0.02
+
+    # Buy Slippage
+    # Maximum allowable slippage for buy orders (as a decimal percentage, e.g., 0.05 = 5%).
+    buyslippage: 0.05
+
+    # Sell Slippage
+    # Maximum allowable slippage for sell orders (as a decimal percentage).
+    sellslippage: 0.1
+
+    # Fast Mode
+    # Bypass price checks and execute buys immediately after detection.
+    fastmode: False
+
+    # Fast Tokens
+    # Number of tokens to buy when fast mode is enabled.
+    fasttokens: 20
+
+    # Stop Loss
+    # Loss threshold in percentage. The bot will sell if the price drops by this amount.
+    stoploss: 20
+
+    # Take Profit
+    # Profit threshold in percentage. The bot will sell if the price increases by this amount.
+    takeprofit: 100
+
+    # Trailing Profit
+    # Activate multilevel trailing profit once the price has increased by these level.
+    trailprofit: False
+
+    # Trailing Level 1
+    # The first trailing profit level the bot must secure, expressed as a percentage.
+    trailone: 50
+
+    # Trailing Level 2
+    # The second trailing profit level the bot must secure, expressed as a percentage.
+    trailtwo: 50
+
+    # Trailing Level 3
+    # The third trailing profit level the bot must secure, expressed as a percentage.
+    trailthree: 50
+
+    # Trailing Level 4
+    # The fourth trailing profit level the bot must secure, expressed as a percentage.
+    trailfour: 50
+
+    # Trailing Level 5
+    # The first fifth profit level the bot must secure, expressed as a percentage.
+    trailfive: 50
+
+# Priority fee configuration
+priority:
+    # Dynamic Priority
+    # Use real-time gas fee estimation for adjusting priority fees.
+    dynamic: False
+
+    # Fixed Fee
+    # Use a fixed fee value instead of dynamic estimation.
+    fixed: True
+
+    # Base Lamports
+    # Base fee in microlamports (1,000,000 = 0.001 SOL).
+    lamports: 1_000_000
+
+    # Extra Percentage
+    # Percentage to increase the base fee for better priority.
+    extra: 0.0
+
+    # Hard Cap
+    # Maximum priority fee in microlamports to prevent overspending.
+    hardcap: 1_000_000
+
+# Retry and timeout settings
+retries:
+    # Max. Attempts
+    # Maximum number of retry attempts for submitting a failed transaction before giving up.
+    attempts: 1
+
+# Token and account management
+wipe:
+    # Cleanup Mode
+    # Defines when cleanup actions (e.g., burning or closing accounts) should occur.
+    # disabled   > no cleanup will occur.
+    # fail       > only clean up if a buy transaction fails.
+    # sell       > clean up after selling.
+    # session    > clean up all empty accounts after a trading session ends.
+    clean: "session"
+
+    # Force Burn
+    # If enabled, any remaining tokens will be forcefully burned after trading.
+    burn: False
+
+    # Priority Rate
+    # Use priority fees for cleanup-related transactions.
+    rate: False
+
+# Rules
+rules:
+    # Min. Market Cap
+    # Minimum market capitalization (SOL) required for a token to be eligible.
+    minmarketcap: 25
+
+    # Max. Market Cap
+    # Maximum market capitalization (SOL) allowed for a token to qualify.
+    maxmarketcap: 500
+
+    # Min. Market Volume
+    # Minimum trading volume (SOL) required for a token to be considered.
+    minmarketvol: 1000
+
+    # Max. Market Volume
+    # Maximum trading volume (SOL) allowed for a token to qualify.
+    maxmarketvol: 10000
+
+    # Min. Owner Hold
+    # Minimum percentage of total supply the token owner must hold.
+    minholdowner: 20
+
+    # Max. Owner Hold
+    # Maximum percentage of total supply the token owner is allowed to hold.
+    maxholdowner: 30
+
+    # Top Holder
+    # Maximum allowed percentage held by the top wallet holder.
+    topholders: 20
+
+    # Min. Holders
+    # Minimum number of holders required for a token to qualify.
+    minholders: 2
+
+    # Max. Holders
+    # Maximum number of holders allowed for a token to qualify.
+    maxholders: 10000
+
+    # Holders Check
+    # Enable to verify that all holders have a minimum SOL balance.
+    holderscheck: False
+
+    # Holders Balance
+    # Minimum balance required in each holder's account for the token to qualify.
+    holdersbalance: 0.1
+
+    # Min. Liquidity Pool
+    # Minimum liquidity (in SOL) the token must have in its trading pool.
+    minliquidity: 2
+
+    # Max. Liquidity Pool
+    # Maximum liquidity (in SOL) allowed for token eligibility.
+    maxliquidity: 500

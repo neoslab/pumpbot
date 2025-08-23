@@ -1,0 +1,43 @@
+<div class="navbar navbar-dark navbar-expand-lg navbar-static border-bottom border-bottom-white border-opacity-10">
+    <div class="container-fluid">
+        <div class="d-flex d-lg-none">
+            <button type="button" class="navbar-toggler sidebar-mobile-main-toggle rounded">
+                <i class="ph-list"></i>
+            </button>
+            <button type="button" class="navbar-toggler sidebar-mobile-end-toggle rounded">
+                <i class="ph-arrow-right"></i>
+            </button>
+        </div>
+        <div class="navbar-brand flex-1 flex-lg-0 d-none d-sm-flex">
+            <a href="{{url_for('home')}}" class="d-inline-flex align-items-center">
+                <img src="{{url_for('static', filename='assets/images/logos/logo-icon.svg')}}" style="height:32px!important;" alt="logo">
+                <img src="{{url_for('static', filename='assets/images/logos/logo-text.png')}}" class="d-none d-sm-inline-block h-16px ms-3" alt="logo">
+            </a>
+        </div>
+        {% if session.get('user') is not none and session.get('user') != '' %}
+        <ul class="nav flex-row justify-content-end order-1 order-lg-2">
+            <li id="StartBotCont" class="nav-item">
+                <button id="startBot" class="btn btn-outline-success btn-sm ms-1">Start Bot</button>
+            </li>
+            <li id="StopBotCont" class="nav-item">
+                <button id="stopBot" class="btn btn-outline-danger btn-sm me-1">Stop Bot</button>
+            </li>
+			<li class="nav-item nav-item-dropdown-lg dropdown ms-lg-2">
+				<a href="#" class="navbar-nav-link align-items-center rounded-pill p-1" data-bs-toggle="dropdown">
+					<div class="status-indicator-container">
+						<img src="{{url_for('static', filename='assets/images/miscs/user.svg')}}" class="w-32px h-32px rounded-pill" alt="user">
+						<span class="status-indicator bg-success"></span>
+					</div>
+					<span class="d-none d-lg-inline-block mx-lg-2">Account</span>
+				</a>
+				<div class="dropdown-menu dropdown-menu-end">
+					<a href="{{url_for('logout')}}" class="dropdown-item">
+						<i class="ph-sign-out me-2"></i>
+						<span>Logout</span>
+					</a>
+				</div>
+			</li>
+		</ul>
+        {% endif %}
+    </div>
+</div>

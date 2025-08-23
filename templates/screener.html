@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-content">
+    {% include 'parts/sidebar.html' %}
+    <div class="content-wrapper">
+        <div class="content-inner">
+            {% include 'parts/breadcrumb.html' %}
+            <div class="content">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Screener</h5>
+                    </div>
+                    <div class="card-body">
+                        {% if not tokens %}
+                        <div id="tokens-alert" class="alert alert-danger alert-icon-start alert-dismissible fade show mt-3">
+                            <span class="alert-icon bg-danger text-white"><i class="ph-x-circle"></i></span>
+                            <span class="fw-semibold me-1">Whoops !!</span>
+                            <span>No tokens found in the database.</span>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                        {% endif %}
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-sm table-hover">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th class="text-center">Mint</th>
+                                        <th class="text-center">Symbol</th>
+                                        <th class="text-center">Price (SOL)</th>
+                                        <th class="text-center">L/P (USD)</th>
+                                        <th class="text-center">Vol (USD)</th>
+                                        <th class="text-center">M/C (USD)</th>
+                                        <th class="text-center">Created</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tokens-body">
+                                    {% if tokens %}
+                                        {% for token in tokens %}
+                                        <tr>
+                                            <td class="text-start">{{ token.mint }}</td>
+                                            <td class="text-start">{{ token.symbol | upper }}</td>
+                                            <td class="text-end">{{ token.price | formatdecimal(6) }}</td>
+                                            <td class="text-end">{% if solprice %}{{ (token.liquidity * solprice) | formatdecimal(2) }}{% else %}N/A{% endif %}</td>
+                                            <td class="text-end">{{ token.volume | formatdecimal(2) }}</td>
+                                            <td class="text-end">{% if solprice %}{{ (token.marketcap * solprice) | formatdecimal(2) }}{% else %}N/A{% endif %}</td>
+                                            <td class="text-center">{{ token.created | safedatetime }}</td>
+                                        </tr>
+                                        {% endfor %}
+                                    {% else %}
+                                        <tr>
+                                            <td class="text-center text-muted" colspan="7">No tokens history available yet.</td>
+                                        </tr>
+                                    {% endif %}
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="d-flex justify-content-end pagination mt-4 mb-3">
+                            <nav aria-label="Page navigation">
+                                <ul class="pagination">
+                                    {% if query > 1 %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?page={{ query - 1 }}">&laquo;</a>
+                                    </li>
+                                    {% endif %}
+                                    {% for p in pages %}
+                                    <li class="page-item {% if p == query %}active{% endif %}">
+                                        <a class="page-link" href="?page={{ p }}">{{ p }}</a>
+                                    </li>
+                                    {% endfor %}
+                                    {% if query < nbrpages %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?page={{ query + 1 }}">&raquo;</a>
+                                    </li>
+                                    {% endif %}
+                                </ul>
+                            </nav>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% include 'parts/tailbar.html' %}
+        </div>
+    </div>
+</div>
+{% endblock %}

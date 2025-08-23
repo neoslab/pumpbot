@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-content">
+    {% include 'parts/sidebar.html' %}
+    <div class="content-wrapper">
+        <div class="content-inner">
+            {% include 'parts/breadcrumb.html' %}
+            <div class="content">
+                <div class="row">
+                    <div class="col-lg-12">
+                        <div class="card">
+                            <div class="card-header d-flex align-items-center">
+                                <h5 class="mb-0">{{title}}</h5>
+                            </div>
+                            <div class="card-body pb-0">
+                                <h6 class="text-uppercase">Solana Wallet</h6>
+                                <form method="post" class="mb-5">
+                                    {{form.csrf_token}}
+                                    {% with messages = get_flashed_messages(with_categories=true) %}
+                                        {% if messages %}
+                                            {% set icons = {'success': 'ph-check-circle', 'danger': 'ph-x-circle'} %}
+                                            {% for category, message in messages %}
+                                                <div class="alert alert-{{category}} alert-icon-start alert-dismissible fade show mt-3">
+                                                    <span class="alert-icon bg-{{category}} text-white">
+                                                        <i class="{{icons.get(category, 'ph-info')}}"></i>
+                                                    </span>
+                                                    <span>{{message}}</span>
+                                                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                                                </div>
+                                            {% endfor %}
+                                        {% endif %}
+                                    {% endwith %}
+                                    <div class="mb-3">
+                                        {{form.publicaddr.label(class="form-label")}}
+                                        {{form.publicaddr(class="form-control", placeholder="Insert public address", autocomplete="off")}}
+                                        {% if form.publicaddr.description %}
+                                            <div class="text-muted mt-1 ms-1">
+                                                {{form.publicaddr.description}}
+                                            </div>
+                                        {% endif %}
+                                        {% if form.publicaddr.errors %}
+                                            <div class="text-danger small mt-1">{{form.publicaddr.errors[0]}}</div>
+                                        {% endif %}
+                                    </div>
+                                    <div class="mb-3">
+                                        {{form.privatekey.label(class="form-label")}}
+                                        {{form.privatekey(class="form-control", placeholder="Insert private key", autocomplete="off")}}
+                                        {% if form.privatekey.description %}
+                                            <div class="text-muted mt-1 ms-1">
+                                                {{form.privatekey.description}}
+                                            </div>
+                                        {% endif %}
+                                        {% if form.privatekey.errors %}
+                                            <div class="text-danger small mt-1">{{form.privatekey.errors[0]}}</div>
+                                        {% endif %}
+                                    </div>
+                                    <hr class="mt-4 mb-4">
+                                    <div class="text-end">
+                                        <button type="submit" class="btn btn-flat-info btn-labeled btn-labeled-start">
+                                            <span class="btn-labeled-icon bg-info text-white">
+                                                <i class="ph-spinner spinner"></i>
+                                            </span>
+                                            <span>{{form.submit.label.text}}</span>
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% include 'parts/tailbar.html' %}
+        </div>
+    </div>
+</div>
+{% endblock %}
