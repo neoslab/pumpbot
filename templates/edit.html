@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-content">
+    {% include 'parts/sidebar.html' %}
+    <div class="content-wrapper">
+        <div class="content-inner">
+            {% include 'parts/breadcrumb.html' %}
+            <div class="content">
+                <div class="row">
+                    <div class="col-lg-12">
+                        <div class="card">
+                            <div class="card-header d-flex align-items-center">
+                                <h5 class="mb-0">{{title}}</h5>
+                            </div>
+                            <div class="card-body pb-0">
+                                <h6 class="text-uppercase">{% if filename %}Edit{% else %}Create{% endif %} Bot File</h6>
+                                <form method="post" action="{{url_for(request.endpoint, filename=filename if mode == 'update' else None)}}" class="mb-5">
+                                    {{form.csrf_token}}
+                                    {% set meta = metadata %}
+                                    {% if not filename %}
+                                        <div class="mb-3">
+                                            <label class="form-label">Filename</label>
+                                            <input type="text" class="form-control" name="filename" placeholder="Type a filename" autocomplete="off" required>
+                                        </div>
+                                    {% endif %}
+                                    {% for key, value in data.items() %}
+                                        {% if value is mapping %}
+                                            <fieldset class="mb-3{% if not (key == 'main' and 'status' in value) %} bot-fields{% endif %}">
+                                                <legend class="fs-base fw-bold border-bottom text-uppercase pb-2 mb-3">{{key}}</legend>
+                                                {% for subkey, subval in value.items() %}
+                                                    {% set fieldmeta = meta.get(key, {}).get(subkey, {}) %}
+                                                    <div class="mb-3 {% if not (key == 'main' and subkey == 'status') %}bot-fields{% endif %}">
+                                                        <label class="form-label">{{fieldmeta.label}}</label>
+                                                        {% if fieldmeta.type == 'select' %}
+                                                            <select class="form-control" name="{{key}}.{{subkey}}" required>
+                                                                {% for opt in fieldmeta.options %}
+                                                                    <option value="{{opt}}" {% if subval|string == opt %}selected{% endif %}>{{opt}}</option>
+                                                                {% endfor %}
+                                                            </select>
+                                                        {% else %}
+                                                            <input type="text" class="form-control" name="{{key}}.{{subkey}}" value="{{subval}}" placeholder="Insert a value" autocomplete="off" required>
+                                                        {% endif %}
+                                                        {% if fieldmeta.description %}
+                                                            <div class="text-muted mt-1 ms-1">
+                                                                {{fieldmeta.description}}
+                                                            </div>
+                                                        {% endif %}
+                                                    </div>
+                                                {% endfor %}
+                                            </fieldset>
+                                        {% else %}
+                                            <div class="mb-3 bot-fields">
+                                                <label class="form-label">{{key}}</label>
+                                                <input type="text" class="form-control" name="{{key}}" value="{{value}}" placeholder="Insert a value" autocomplete="off" {% if subkey=="botname" %}readonly{% endif %} required>
+                                            </div>
+                                        {% endif %}
+                                    {% endfor %}
+                                    <hr class="mb-4">
+                                    <div class="text-end">
+                                        <button type="submit" class="btn btn-flat-info btn-labeled btn-labeled-start">
+                                            <span class="btn-labeled-icon bg-info text-white">
+                                                <i class="ph-spinner spinner"></i>
+                                            </span>
+                                            <span>{{form.submit.label.text}}</span>
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% include 'parts/tailbar.html' %}
+        </div>
+    </div>
+</div>
+{% endblock %}

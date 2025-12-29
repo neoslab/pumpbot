@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-content">
+    {% include 'parts/sidebar.html' %}
+    <div class="content-wrapper">
+        <div class="content-inner">
+            {% include 'parts/breadcrumb.html' %}
+            <div class="content">
+                <div class="card">
+					<div class="card-header">
+						<h5 class="mb-0">{{title}}</h5>
+					</div>
+					<div class="card-body">
+                        <div class="text-end">
+                            <a href="{{url_for('add')}}" class="btn btn-flat-info btn-labeled btn-labeled-start">
+                                <span class="btn-labeled-icon bg-info text-white">
+                                    <i class="ph-plus"></i>
+                                </span>
+                                <span>Create Bot</span>
+                            </a>
+                        </div>
+                        {% with messages = get_flashed_messages(with_categories=true) %}
+                            {% if messages %}
+                                {% set icons = {'success': 'ph-check-circle', 'danger': 'ph-x-circle'} %}
+                                {% for category, message in messages %}
+                                    <div class="alert alert-{{category}} alert-icon-start alert-dismissible fade show mt-3">
+                                        <span class="alert-icon bg-{{category}} text-white">
+                                            <i class="{{icons.get(category, 'ph-info')}}"></i>
+                                        </span>
+                                        <span>{{message}}</span>
+                                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                                    </div>
+                                {% endfor %}
+                            {% endif %}
+                        {% endwith %}
+					</div>
+					<div class="table-responsive">
+                        <table class="table table-striped">
+                            <tr>
+                                <th style="text-align:center;">Filename</th>
+                                <th style="text-align:center;">Control</th>
+                            </tr>
+                            {% if files %}
+                                {% for f in files %}
+                                    <tr>
+                                        <td style="text-align:left;">{{f}}</td>
+                                        <td style="text-align:center;width:140px;">
+                                            <a href="{{url_for('update', filename=f)}}" class="btn btn-flat-primary btn-icon"><i class="ph-pen"></i></a>
+                                            <a href="{{url_for('delete', filename=f)}}" class="btn btn-flat-danger btn-icon"><i class="ph-trash"></i></a>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            {% else %}
+                                <tr>
+                                    <td colspan="2" class="text-center">No bot to display</td>
+                                </tr>
+                            {% endif %}
+                        </table>
+					</div>
+				</div>
+            </div>
+            {% include 'parts/tailbar.html' %}
+        </div>
+    </div>
+</div>
+{% endblock %}

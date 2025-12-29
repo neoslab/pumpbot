@@ -1,0 +1,74 @@
+<div class="sidebar sidebar-dark sidebar-main sidebar-expand-lg sidebar-main-resized">
+    <div class="sidebar-content">
+        <div class="sidebar-section">
+            <div class="sidebar-section-body d-flex justify-content-center">
+                <h5 class="sidebar-resize-hide flex-grow-1 my-auto">Navigation</h5>
+                <div>
+                    <button type="button" class="btn btn-flat-white btn-icon btn-sm rounded-pill border-transparent sidebar-control sidebar-main-resize d-none d-lg-inline-flex">
+                        <i class="ph-arrows-left-right"></i>
+                    </button>
+                    <button type="button" class="btn btn-flat-white btn-icon btn-sm rounded-pill border-transparent sidebar-mobile-main-toggle d-lg-none">
+                        <i class="ph-x"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div class="sidebar-section">
+            <ul class="nav nav-sidebar" data-nav-type="accordion">
+                <li class="nav-item-header pt-0">
+                    <div class="text-uppercase fs-sm lh-sm opacity-50 sidebar-resize-hide">Main</div>
+                    <i class="ph-dots-three sidebar-resize-show"></i>
+                </li>
+                <li class="nav-item">
+                    <a href="{{url_for('home')}}" class="nav-link {% if request.endpoint == 'home' %}active{% endif %}">
+                        <i class="ph-house"></i>
+                        <span>Dashboard</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{{url_for('trades')}}" class="nav-link {% if request.endpoint == 'trades' %}active{% endif %}">
+                        <i class="ph-swatches"></i>
+                        <span>Trades</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{{url_for('screener')}}" class="nav-link {% if request.endpoint == 'screener' %}active{% endif %}">
+                        <i class="ph-broadcast"></i>
+                        <span>Screener</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{{url_for('bots')}}" class="nav-link {% if request.endpoint == 'bots' %}active{% endif %}">
+                        <i class="ph-columns"></i>
+                        <span>Bots</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{{url_for('wallet')}}" class="nav-link {% if request.endpoint == 'wallet' %}active{% endif %}">
+                        <i class="ph-wallet"></i>
+                        <span>Wallet</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{{url_for('endpoint')}}" class="nav-link {% if request.endpoint == 'endpoint' %}active{% endif %}">
+                        <i class="ph-table"></i>
+                        <span>Endpoint</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{{url_for('logs')}}" class="nav-link {% if request.endpoint == 'logs' %}active{% endif %}">
+                        <i class="ph-note-pencil"></i>
+                        <span>Logs</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{{url_for('changelog')}}" class="nav-link {% if request.endpoint == 'changelog' %}active{% endif %}">
+                        <i class="ph-list-numbers"></i>
+                        <span>Changelog</span>
+                        <span class="badge bg-primary align-self-center rounded-pill ms-auto">{{projectvers}}</span>
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,23 @@
+<div class="page-header page-header-light shadow">
+    <div class="page-header-content d-lg-flex">
+        <div class="d-flex">
+            <div class="breadcrumb py-2">
+                <a href="{{url_for('home')}}" class="breadcrumb-item">
+                    <i class="ph-house"></i>
+                </a>
+                <a href="{{url_for('home')}}" class="breadcrumb-item">Home</a>
+                {% if request.path != '/home' %}
+                    <span class="breadcrumb-item active">{{title}}</span>
+                {% endif %}
+            </div>
+        </div>
+        <div class="collapse d-lg-block ms-lg-auto" id="breadcrumb_elements">
+            <div class="d-lg-flex mb-2 mb-lg-0">
+                <div class="d-flex align-items-center text-body py-2">
+					<i class="ph-wallet me-2"></i>
+                    <span id="botBalance">{{"%.9f"|format(walletbalance|float)}} SOL</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
